@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/com.jcraft-jsch.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/de.java2html-java2html.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/net.java.openjdk.custom-javac6.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/netbeans.org-boot.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/netbeans.org-modules.java.source.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/netbeans.org-openide.modules.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/netbeans.org-openide.util.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/org.apache.ant-ant-launcher.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/org.apache.ant-ant.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/org.eclipse.custom-core.jobs.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/org.eclipse.custom-core.resources.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/org.eclipse.custom-core.runtime.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/org.eclipse.custom-ecj.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/org.eclipse.custom-equinox.common.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/org.eclipse.custom-jdt.core.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/org.eclipse.custom-jdt.ui.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/org.eclipse.custom-osgi.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/org.projectlombok-lombok.patcher.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/projectlombok.org-jsch-ant-fixed.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/projectlombok.org-markdownj.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/projectlombok.org-spi.jar"/>
+	<classpathentry kind="lib" path="/lombok/lib/build/zwitserloot.com-cmdreader.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/lombok"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
