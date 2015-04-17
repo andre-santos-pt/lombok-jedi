@@ -22,15 +22,24 @@ package pt.iscte.lombok.jedi.javac.handlers;
  * THE SOFTWARE.
  */
 
-import static lombok.javac.Javac.*;
-import static lombok.javac.handlers.JavacHandlerUtil.*;
+import static lombok.javac.Javac.CTC_BOOLEAN;
+import static lombok.javac.Javac.CTC_BYTE;
+import static lombok.javac.Javac.CTC_CHAR;
+import static lombok.javac.Javac.CTC_DOUBLE;
+import static lombok.javac.Javac.CTC_FLOAT;
+import static lombok.javac.Javac.CTC_INT;
+import static lombok.javac.Javac.CTC_LONG;
+import static lombok.javac.Javac.CTC_SHORT;
+import static lombok.javac.Javac.CTC_VOID;
+import static lombok.javac.handlers.JavacHandlerUtil.injectField;
+import static lombok.javac.handlers.JavacHandlerUtil.injectMethod;
+import static lombok.javac.handlers.JavacHandlerUtil.recursiveSetGeneratedBy;
+import static lombok.javac.handlers.JavacHandlerUtil.removePrefixFromField;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 
 import lombok.AccessLevel;
-import lombok.Wrapper;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;
@@ -39,6 +48,8 @@ import lombok.javac.JavacTreeMaker;
 import lombok.javac.JavacTreeMaker.TypeTag;
 
 import org.mangosdk.spi.ProviderFor;
+
+import pt.iscte.lombok.jedi.Wrapper;
 
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Type;

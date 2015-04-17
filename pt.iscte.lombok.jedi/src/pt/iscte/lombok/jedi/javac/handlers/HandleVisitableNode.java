@@ -30,19 +30,17 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.VisitableChildren;
-import lombok.VisitableNode;
-import lombok.VisitableType;
-import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
-import lombok.javac.Javac;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
 import lombok.javac.ResolutionResetNeeded;
 
 import org.mangosdk.spi.ProviderFor;
+
+import pt.iscte.lombok.jedi.VisitableNode;
+import pt.iscte.lombok.jedi.VisitableType;
 
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Type;
@@ -53,10 +51,8 @@ import com.sun.tools.javac.tree.JCTree.JCBlock;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCEnhancedForLoop;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
-import com.sun.tools.javac.tree.JCTree.JCIdent;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.JCTree.JCStatement;
-import com.sun.tools.javac.tree.JCTree.JCTypeApply;
 import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
 import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 import com.sun.tools.javac.util.List;

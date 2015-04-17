@@ -27,9 +27,7 @@ import static lombok.javac.handlers.JavacHandlerUtil.injectField;
 import static lombok.javac.handlers.JavacHandlerUtil.injectMethod;
 import static lombok.javac.handlers.JavacHandlerUtil.recursiveSetGeneratedBy;
 import static lombok.javac.handlers.JavacHandlerUtil.removePrefixFromField;
-
 import lombok.AccessLevel;
-import lombok.Singleton;
 import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
 import lombok.javac.JavacAnnotationHandler;
@@ -37,9 +35,10 @@ import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
 import lombok.javac.handlers.HandleConstructor;
 import lombok.javac.handlers.HandleData;
-import lombok.javac.handlers.JavacHandlerUtil.FieldAccess;
 
 import org.mangosdk.spi.ProviderFor;
+
+import pt.iscte.lombok.jedi.Singleton;
 
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;

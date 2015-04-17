@@ -24,9 +24,6 @@
  import java.util.HashMap;
 import java.util.Map;
 
-import lombok.Composite;
-import lombok.CompositeChildren;
-import lombok.CompositeComponent;
 import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
@@ -34,6 +31,10 @@ import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 
 import org.mangosdk.spi.ProviderFor;
+
+import pt.iscte.lombok.jedi.Composite;
+import pt.iscte.lombok.jedi.CompositeChildren;
+import pt.iscte.lombok.jedi.CompositeComponent;
 
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ClassType;

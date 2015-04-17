@@ -27,7 +27,7 @@
 			<fileset dir="." includes="release-timestamp.txt" />
 
 			<fileset dir="build/jedi">
-				<include name="pt/**" />
+				<include name="lombok/**" />
 			</fileset>
 
 			<fileset dir="build/lombok">
