@@ -3,19 +3,20 @@
 
 	<import file="build.xml"/>
 
-	<target name="jedi" depends="compile, version, ensureBuildDeps, -unpackLibs" description="Compiles the code.">
+	<target name="jedi" depends="compile" description="Compiles the code.">
 
 		<ivy:compile destdir="build/jedi" source="1.6" target="1.6" includeantruntime="false">
 			<compilerarg value="-Xbootclasspath/p:build/stubs${path.separator}lib/openJDK6Environment/rt-openjdk6.jar" />
 			
 			<src path="/Users/duartecoelho/git/lombok-jedi/pt.iscte.lombok.jedi/src"/>
 
-			<include name="pt/**" />
+			<include name="lombok/**" />
 		
 			<classpath location="build/lombok" />
 			<classpath refid="build.path" />
 		</ivy:compile>
 
+		
 		<concat destfile="build/lombok/META-INF/services/lombok.javac.JavacAnnotationHandler" append="true">
 			<fileset file="build/jedi/META-INF/services/lombok.javac.JavacAnnotationHandler" />
 		</concat>
@@ -27,7 +28,7 @@
 			<fileset dir="." includes="release-timestamp.txt" />
 
 			<fileset dir="build/jedi">
-				<include name="pt/**" />
+				<include name="lombok/**" />
 			</fileset>
 
 			<fileset dir="build/lombok">
@@ -61,6 +62,7 @@
 				<attribute name="Lombok-Version" value="${lombok.version}" />
 			</manifest>
 		</jar>
+		
 	</target>
 
 </project>

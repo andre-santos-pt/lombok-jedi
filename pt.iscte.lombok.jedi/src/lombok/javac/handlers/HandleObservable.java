@@ -1,4 +1,4 @@
-package pt.iscte.lombok.jedi.javac.handlers;
+package lombok.javac.handlers;
 import static lombok.javac.Javac.CTC_BOOLEAN;
 import static lombok.javac.Javac.CTC_BOT;
 import static lombok.javac.Javac.CTC_BYTE;
@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.regex.Pattern;
 
+import lombok.Observable;
 import lombok.core.AnnotationValues;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
@@ -29,8 +30,6 @@ import lombok.javac.JavacTreeMaker;
 import lombok.javac.JavacTreeMaker.TypeTag;
 
 import org.mangosdk.spi.ProviderFor;
-
-import pt.iscte.lombok.jedi.Observable;
 
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.tree.JCTree;

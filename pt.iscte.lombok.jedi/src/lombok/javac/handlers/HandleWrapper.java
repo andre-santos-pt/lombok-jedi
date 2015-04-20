@@ -1,4 +1,4 @@
-package pt.iscte.lombok.jedi.javac.handlers;
+package lombok.javac.handlers;
 
 /*
  * Copyright (C) 2009-2014 The Project Lombok Authors.
@@ -33,7 +33,6 @@ import static lombok.javac.Javac.CTC_SHORT;
 import static lombok.javac.Javac.CTC_VOID;
 import static lombok.javac.handlers.JavacHandlerUtil.injectField;
 import static lombok.javac.handlers.JavacHandlerUtil.injectMethod;
-import static lombok.javac.handlers.JavacHandlerUtil.injectType;
 import static lombok.javac.handlers.JavacHandlerUtil.recursiveSetGeneratedBy;
 import static lombok.javac.handlers.JavacHandlerUtil.removePrefixFromField;
 
@@ -41,6 +40,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
 import lombok.AccessLevel;
+import lombok.Wrapper;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;
@@ -50,15 +50,15 @@ import lombok.javac.JavacTreeMaker.TypeTag;
 
 import org.mangosdk.spi.ProviderFor;
 
-import pt.iscte.lombok.jedi.Decorator;
-
 import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCAssign;
 import com.sun.tools.javac.tree.JCTree.JCBlock;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
+import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.JCTree.JCMethodInvocation;
 import com.sun.tools.javac.tree.JCTree.JCStatement;
@@ -72,8 +72,8 @@ import com.sun.tools.javac.util.Name;
  * Handles the {@code lombok.Getter} annotation for javac.
  */
 @ProviderFor(JavacAnnotationHandler.class) 
-@HandlerPriority(12)
-public class HandleDecorator extends JavacAnnotationHandler<Decorator> {
+@HandlerPriority(1)
+public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 	
 	private static final List<JCExpression> NIL_EXPRESSION = List.nil();
 	
@@ -117,62 +117,55 @@ public class HandleDecorator extends JavacAnnotationHandler<Decorator> {
 		return null;
 	}
 	
-	@Override public void handle(AnnotationValues<Decorator> annotation, JCAnnotation ast, JavacNode node) {
+	@Override public void handle(AnnotationValues<Wrapper> annotation, JCAnnotation ast, JavacNode node) {
 		JavacTreeMaker maker = node.up().getTreeMaker();
-		System.out.println("correu decorator");
-		Decorator annotationInstance = annotation.getInstance();
-		System.out.println("correu decorator");
-		Class<?> instancetype = annotationInstance.interfaceClass();
-		System.out.println("correu decorator");
-		String classname = "Decorator"; //annotationInstance.abstractClassName();
-		System.out.println("correu decorator");
-		JCClassDecl annotatedclass = (JCClassDecl) node.up().get();
 		
-		if (Modifier.isInterface(instancetype.getModifiers())) {
-			JavacNode clazznode = createInnerAbstractClass(node, maker,instancetype,classname);
-			
-			JavacNode fieldNode = createLocalFieldOnInnerClass(node, maker, instancetype, clazznode);
-			
-			handleConstructor(clazznode, maker, instancetype, fieldNode);
-			handleMethods(clazznode, maker, instancetype, fieldNode);
-		} else {
-			node.up().addError("The @Decorator's attribute must be an Interface.");
-		}
-	}
+		Object obj = annotation.getActualExpression("value");
+		System.out.println(obj);
+		
+		JCFieldAccess field = (JCFieldAccess) obj;
+		Type type = field.selected.type;
+		System.out.println("type :" + type);
+		
+		JavacNode fieldNode = createLocalField(node, maker, type);
+		handleConstructor(node, maker, type, fieldNode);
+		
+//		Wrapper annotationInstance = annotation.getInstance();
+//		Class<?> instancetype = annotationInstance.value();
 	
-	private JavacNode createLocalFieldOnInnerClass(JavacNode node, JavacTreeMaker maker, Class<?> instancetype, JavacNode clazznode) {
-		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE | Flags.FINAL), node.toName("_instance"), maker.Ident(node.toName(instancetype.getSimpleName())), null);
-		JavacNode fieldNode = injectField(clazznode, field);
+		
+//		JCClassDecl annotatedclass = (JCClassDecl) node.up().get();
+//		if (Modifier.isInterface(instancetype.getModifiers())) {
+//			annotatedclass.implementing = List.<JCTree.JCExpression>of(maker.Ident(node.toName(instancetype.getName())));
+//			JavacNode fieldNode = createLocalField(node, maker, instancetype);
+//			
+//			handleConstructor(node, maker, instancetype, fieldNode);
+//			handleMethods(node, maker, instancetype, fieldNode);
+//		} else {
+//			node.up().addError("The @Wrapper's attribute must be an Interface.");
+//		}
+	}
+
+	
+	
+	
+	private JavacNode createLocalField(JavacNode node, JavacTreeMaker maker, Type instancetype) {
+		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE | Flags.FINAL), node.toName("_instance"), maker.Ident(node.toName(instancetype.toString())), null);
+		JavacNode fieldNode = injectField(node.up(), field);
 		return fieldNode;
 	}
 	
-	private JavacNode createInnerAbstractClass(JavacNode node, JavacTreeMaker maker, Class<?> instancetype, String classname) {
-		JCClassDecl clazz;
-		JavacNode clazznode;
-		if(classname.equals("")){
-			clazz = maker.ClassDef(maker.Modifiers(Flags.ABSTRACT | Flags.PUBLIC), node.toName(instancetype.getName()+"Decorator"), List.<JCTypeParameter>nil(), null, List.<JCExpression>nil(), List.<JCTree>nil());
-			clazz.implementing=List.<JCTree.JCExpression>of(maker.Ident(node.toName(instancetype.getSimpleName())));
-		clazznode = injectType(node.up(), clazz);	
-		}else{
-			clazz = maker.ClassDef(maker.Modifiers(Flags.ABSTRACT | Flags.PUBLIC), node.toName(classname), List.<JCTypeParameter>nil(), null, List.<JCExpression>nil(), List.<JCTree>nil());
-			clazz.implementing=List.<JCTree.JCExpression>of(maker.Ident(node.toName(instancetype.getSimpleName())));
-		clazznode = injectType(node.up(), clazz);
-		}
-		
-	
-		return clazznode;
-	}
-	
-	private void handleConstructor(JavacNode node, JavacTreeMaker maker, Class<?> instancetype, JavacNode fieldNode) {
+	private void handleConstructor(JavacNode node, JavacTreeMaker maker, Type instancetype, JavacNode fieldNode) {
 		Name fieldName = removePrefixFromField(fieldNode);
 		JCMethodDecl constructor = JediJavacUtil.createConstructor(AccessLevel.PACKAGE, List.<JCAnnotation>nil(), node.up(), List.<JavacNode>nil(), null, node);
 		constructor.mods = maker.Modifiers(Flags.PUBLIC);
-		Name argname = node.toName(instancetype.getSimpleName().toLowerCase());
-		JCVariableDecl arg = maker.VarDef(maker.Modifiers(0), argname, maker.Ident(node.toName(instancetype.getSimpleName())), null);
+		Name argname = node.toName(instancetype.toString().toLowerCase());
+		JCVariableDecl arg = maker.VarDef(maker.Modifiers(0), argname, maker.Ident(node.toName(instancetype.toString())), null);
 		constructor.params = List.<JCVariableDecl>of(arg);
 		JCAssign assign = maker.Assign(maker.Ident(fieldName), maker.Ident(argname));
 		JCBlock constrbody = maker.Block(0, List.<JCStatement>of(maker.Exec(assign)));
 		constructor.body = constrbody;
+		
 		injectMethod(node.up(), constructor);
 	}
 	
@@ -192,9 +185,12 @@ public class HandleDecorator extends JavacAnnotationHandler<Decorator> {
 				} else {
 					returnType = maker.TypeIdent(temp);
 				}
+				
+				// copying the arguments from the original source
 				ListBuffer<JCVariableDecl> arguments = new ListBuffer<JCVariableDecl>();
 				ListBuffer<JCExpression> parameters = new ListBuffer<JCExpression>();
 				int i = 0;
+				
 				String argname = "";
 				for (Class<?> o : m.getParameterTypes()) {
 					i++;
@@ -208,19 +204,22 @@ public class HandleDecorator extends JavacAnnotationHandler<Decorator> {
 						arguments.add(maker.VarDef(maker.Modifiers(0), node.toName(argname), maker.TypeIdent(temp), null));
 						parameters.add(maker.Ident(node.toName(argname)));
 					}
-					
 				}
 				JCMethodInvocation newCall = maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(fieldName), node.up().toName(m.getName())), parameters.toList());
+				
 				if (handlePrimitiveType(m.getReturnType().getName()) != null && handlePrimitiveType(m.getReturnType().getName()).equals(CTC_VOID)) {
 					statements.add(maker.Exec(newCall));
 				} else {
 					statements.add(maker.Return(newCall));
 				}
 				JCBlock body = maker.Block(0, statements.toList());
-				JCMethodDecl decl = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC), node.toName(m.getName()), returnType, List.<JCTypeParameter>nil(), arguments.toList(), List.<JCExpression>nil(), body, null), node.up().get(), node.getContext());
+				JCMethodDecl decl = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC),
+				node.toName(m.getName()), returnType, List.<JCTypeParameter>nil(), 
+				arguments.toList(), List.<JCExpression>nil(), body, null), node.up().get(), node.getContext());
 				injectMethod(node.up(), decl);
 			}
 		}
+		
 	}
 	
 	private boolean methodManuallyExists(Method m, JavacNode node, JavacTreeMaker maker) {
@@ -229,7 +228,7 @@ public class HandleDecorator extends JavacAnnotationHandler<Decorator> {
 			if (member.getKind() == com.sun.source.tree.Tree.Kind.METHOD) {
 				JCMethodDecl method = (JCMethodDecl) member;
 				if (!method.getName().equals(node.toName("<init>"))) {
-				if (m.getName().equals(method.getName().toString()) && parametersEquals(node, maker, m.getParameterTypes(), method.getParameters())) {
+					if (m.getName().equals(method.getName().toString()) && parametersEquals(node, maker, m.getParameterTypes(), method.getParameters())) {
 						return true;
 					}
 					
@@ -242,7 +241,7 @@ public class HandleDecorator extends JavacAnnotationHandler<Decorator> {
 	private boolean parametersEquals(JavacNode node, JavacTreeMaker maker, Class<?>[] parameterTypes, List<JCVariableDecl> list) {
 		if (list.size() == parameterTypes.length) {
 			for (int i = 0; i < list.size(); i++) {
-				String k = handleArrayType(node, maker, parameterTypes[i]).toString();
+			String k = handleArrayType(node, maker, parameterTypes[i]).toString();
 				String p = list.get(i).getType().toString();
 				if (!k.equals(p)) {
 					return false;
@@ -251,7 +250,6 @@ public class HandleDecorator extends JavacAnnotationHandler<Decorator> {
 				}
 			}
 			return true;
-			
 		}
 		return false;
 	}

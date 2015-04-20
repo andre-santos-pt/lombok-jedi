@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package pt.iscte.lombok.jedi.javac.handlers;
+package lombok.javac.handlers;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,6 +27,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.VisitableChildren;
+import lombok.VisitableNode;
+import lombok.VisitableType;
 import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
@@ -35,10 +38,6 @@ import lombok.javac.JavacNode;
 import lombok.javac.ResolutionResetNeeded;
 
 import org.mangosdk.spi.ProviderFor;
-
-import pt.iscte.lombok.jedi.VisitableChildren;
-import pt.iscte.lombok.jedi.VisitableNode;
-import pt.iscte.lombok.jedi.VisitableType;
 
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ClassType;

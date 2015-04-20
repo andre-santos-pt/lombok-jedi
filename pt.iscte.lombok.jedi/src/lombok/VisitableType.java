@@ -1,4 +1,4 @@
-package pt.iscte.lombok.jedi;
+package lombok;
 
 
 import java.lang.annotation.ElementType;
@@ -8,6 +8,8 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
-public @interface VisitableNode {
-	
+public @interface VisitableType {
+	String visitorTypeName() default "Visitor";
+	String visitorMethodName() default "visit";
+	String acceptMethodName() default "accept";
 }

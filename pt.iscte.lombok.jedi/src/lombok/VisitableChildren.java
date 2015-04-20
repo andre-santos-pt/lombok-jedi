@@ -1,4 +1,4 @@
-package pt.iscte.lombok.jedi;
+package lombok;
 
 
 import java.lang.annotation.ElementType;
@@ -8,6 +8,6 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.SOURCE)
-public @interface CompositeChildren {
+public @interface VisitableChildren {
 	
 }

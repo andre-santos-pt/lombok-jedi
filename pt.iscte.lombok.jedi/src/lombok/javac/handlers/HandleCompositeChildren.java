@@ -1,7 +1,9 @@
-package pt.iscte.lombok.jedi.javac.handlers;
+package lombok.javac.handlers;
 
 import static lombok.javac.Javac.CTC_BOT;
 import static lombok.javac.handlers.JavacHandlerUtil.injectMethod;
+import lombok.CompositeChildren;
+import lombok.CompositeComponent;
 import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
@@ -10,9 +12,6 @@ import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
 
 import org.mangosdk.spi.ProviderFor;
-
-import pt.iscte.lombok.jedi.CompositeChildren;
-import pt.iscte.lombok.jedi.CompositeComponent;
 
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Type;

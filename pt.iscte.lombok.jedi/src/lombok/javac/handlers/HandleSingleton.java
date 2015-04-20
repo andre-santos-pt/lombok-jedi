@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package pt.iscte.lombok.jedi.javac.handlers;
+package lombok.javac.handlers;
 
 import static lombok.javac.Javac.CTC_BOT;
 import static lombok.javac.Javac.CTC_EQUAL;
@@ -28,6 +28,7 @@ import static lombok.javac.handlers.JavacHandlerUtil.injectMethod;
 import static lombok.javac.handlers.JavacHandlerUtil.recursiveSetGeneratedBy;
 import static lombok.javac.handlers.JavacHandlerUtil.removePrefixFromField;
 import lombok.AccessLevel;
+import lombok.Singleton;
 import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
 import lombok.javac.JavacAnnotationHandler;
@@ -37,8 +38,6 @@ import lombok.javac.handlers.HandleConstructor;
 import lombok.javac.handlers.HandleData;
 
 import org.mangosdk.spi.ProviderFor;
-
-import pt.iscte.lombok.jedi.Singleton;
 
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;

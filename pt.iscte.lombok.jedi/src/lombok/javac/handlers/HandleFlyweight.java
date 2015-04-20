@@ -1,4 +1,6 @@
-package pt.iscte.lombok.jedi.javac.handlers;
+package lombok.javac.handlers;
+
+
 import static lombok.javac.Javac.CTC_BOT;
 import static lombok.javac.Javac.CTC_EQUAL;
 import static lombok.javac.Javac.CTC_NOT;
