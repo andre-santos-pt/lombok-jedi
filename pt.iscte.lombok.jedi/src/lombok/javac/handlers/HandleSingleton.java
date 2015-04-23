@@ -28,6 +28,7 @@ import static lombok.javac.handlers.JavacHandlerUtil.injectMethod;
 import static lombok.javac.handlers.JavacHandlerUtil.recursiveSetGeneratedBy;
 import static lombok.javac.handlers.JavacHandlerUtil.removePrefixFromField;
 import lombok.AccessLevel;
+import lombok.Observable;
 import lombok.Singleton;
 import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
@@ -98,10 +99,15 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
  			}	
 		}
 		if(!haspublic){
+			Singleton annotationInstance=  annotation.getInstance();
+			String methodname = annotationInstance.value();
+			if(methodname.equals("")||methodname==null){
+				methodname="getInstance";
+			}
 			JCClassDecl clazz = (JCClassDecl)node.up().get();
 			JavacNode fieldNode = createLocalField(node, maker, clazz);
 			createConstructor(node, maker);
-			createGetMethod(node, maker, clazz, fieldNode);	
+			createGetMethod(node, maker, clazz, fieldNode,methodname);	
 		}else{
 			
 		}
@@ -127,7 +133,7 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 	}
 
 
-	private void createGetMethod(JavacNode node, JavacTreeMaker maker, JCClassDecl x, JavacNode fieldNode) {
+	private void createGetMethod(JavacNode node, JavacTreeMaker maker, JCClassDecl x, JavacNode fieldNode,String methodname) {
 		JCVariableDecl field = (JCVariableDecl)fieldNode.get();
 		Name fieldName = removePrefixFromField(fieldNode);
 		ListBuffer<JCStatement> statements = new ListBuffer<JCStatement>();
@@ -154,7 +160,7 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 		//JCVariableDecl field = (JCVariableDecl) fieldNode.get();
 
 		
-		JCMethodDecl decl = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC|Flags.STATIC|Flags.SYNCHRONIZED), node.toName("getInstance") , maker.Ident(x.name),
+		JCMethodDecl decl = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC|Flags.STATIC|Flags.SYNCHRONIZED), node.toName(methodname) , maker.Ident(x.name),
 				List.<JCTypeParameter>nil(), List.<JCVariableDecl>nil(), List.<JCExpression>nil(), body, null), node.up().get(), node.getContext());
 		
 		injectMethod(node.up(), decl);

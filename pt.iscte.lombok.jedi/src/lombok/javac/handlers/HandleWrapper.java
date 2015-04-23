@@ -38,6 +38,15 @@ import static lombok.javac.handlers.JavacHandlerUtil.removePrefixFromField;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Set;
+
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.ExecutableType;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 
 import lombok.AccessLevel;
 import lombok.Wrapper;
@@ -45,13 +54,18 @@ import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
+import lombok.javac.JavacResolution;
+import lombok.javac.JavacResolution.TypeNotConvertibleException;
 import lombok.javac.JavacTreeMaker;
 import lombok.javac.JavacTreeMaker.TypeTag;
 
 import org.mangosdk.spi.ProviderFor;
 
 import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
+import com.sun.tools.javac.code.Type.ClassType;
+import com.sun.tools.javac.model.JavacTypes;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCAssign;
@@ -71,201 +85,274 @@ import com.sun.tools.javac.util.Name;
 /**
  * Handles the {@code lombok.Getter} annotation for javac.
  */
-@ProviderFor(JavacAnnotationHandler.class) 
-@HandlerPriority(1)
+@ProviderFor(JavacAnnotationHandler.class)
+@HandlerPriority(12)
 public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
-	
+
 	private static final List<JCExpression> NIL_EXPRESSION = List.nil();
-	
+
 	public TypeTag handlePrimitiveType(String type) {
-		
+
 		if (type.equals(int.class.getName())) {
 			return CTC_INT;
 		}
-		
+
 		if (type.equals(double.class.getName())) {
 			return CTC_DOUBLE;
 		}
-		
+
 		if (type.equals(float.class.getName())) {
 			return CTC_FLOAT;
 		}
-		
+
 		if (type.equals(short.class.getName())) {
 			return CTC_SHORT;
 		}
-		
+
 		if (type.equals(byte.class.getName())) {
 			return CTC_BYTE;
 		}
-		
+
 		if (type.equals(long.class.getName())) {
 			return CTC_LONG;
 		}
-		
+
 		if (type.equals(boolean.class.getName())) {
 			return CTC_BOOLEAN;
 		}
-		
+
 		if (type.equals(char.class.getName())) {
 			return CTC_CHAR;
 		}
 		if (type.equals("void")) {
 			return CTC_VOID;
 		}
-		
+
 		return null;
 	}
-	
-	@Override public void handle(AnnotationValues<Wrapper> annotation, JCAnnotation ast, JavacNode node) {
+
+	@Override
+	public void handle(AnnotationValues<Wrapper> annotation, JCAnnotation ast,
+			JavacNode node) {
 		JavacTreeMaker maker = node.up().getTreeMaker();
-		
 		Object obj = annotation.getActualExpression("value");
-		System.out.println(obj);
-		
+
 		JCFieldAccess field = (JCFieldAccess) obj;
 		Type type = field.selected.type;
-		System.out.println("type :" + type);
 		
-		JavacNode fieldNode = createLocalField(node, maker, type);
-		handleConstructor(node, maker, type, fieldNode);
+		JCClassDecl cl= (JCClassDecl) node.up().get();
 		
-//		Wrapper annotationInstance = annotation.getInstance();
-//		Class<?> instancetype = annotationInstance.value();
-	
+		if(!cl.sym.isInterface()){
+			JavacNode fieldNode = createLocalField(node, maker, type);
+			handleConstructor(node, maker, type, fieldNode);
+			handleMethods(node.up(), maker, type, fieldNode,true);
+		}else{
+			node.up().addError("The annotation @Wrapper can not be used on a Interface.");
+		}
 		
-//		JCClassDecl annotatedclass = (JCClassDecl) node.up().get();
-//		if (Modifier.isInterface(instancetype.getModifiers())) {
-//			annotatedclass.implementing = List.<JCTree.JCExpression>of(maker.Ident(node.toName(instancetype.getName())));
-//			JavacNode fieldNode = createLocalField(node, maker, instancetype);
-//			
-//			handleConstructor(node, maker, instancetype, fieldNode);
-//			handleMethods(node, maker, instancetype, fieldNode);
-//		} else {
-//			node.up().addError("The @Wrapper's attribute must be an Interface.");
-//		}
+		
+		
 	}
 
-	
-	
-	
-	private JavacNode createLocalField(JavacNode node, JavacTreeMaker maker, Type instancetype) {
-		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE | Flags.FINAL), node.toName("_instance"), maker.Ident(node.toName(instancetype.toString())), null);
+	private JavacNode createLocalField(JavacNode node, JavacTreeMaker maker,
+			Type instancetype) {
+		JCVariableDecl field = maker.VarDef(
+				maker.Modifiers(Flags.FINAL),
+				node.toName("wrapTarget"),
+				maker.Ident(node.toName(instancetype.toString())), null);
 		JavacNode fieldNode = injectField(node.up(), field);
 		return fieldNode;
 	}
-	
-	private void handleConstructor(JavacNode node, JavacTreeMaker maker, Type instancetype, JavacNode fieldNode) {
+
+	private void handleConstructor(JavacNode node, JavacTreeMaker maker,
+			Type instancetype, JavacNode fieldNode) {
 		Name fieldName = removePrefixFromField(fieldNode);
-		JCMethodDecl constructor = JediJavacUtil.createConstructor(AccessLevel.PACKAGE, List.<JCAnnotation>nil(), node.up(), List.<JavacNode>nil(), null, node);
+		JCMethodDecl constructor = JediJavacUtil.createConstructor(
+				AccessLevel.PACKAGE, List.<JCAnnotation> nil(), node.up(),
+				List.<JavacNode> nil(), null, node);
 		constructor.mods = maker.Modifiers(Flags.PUBLIC);
 		Name argname = node.toName(instancetype.toString().toLowerCase());
-		JCVariableDecl arg = maker.VarDef(maker.Modifiers(0), argname, maker.Ident(node.toName(instancetype.toString())), null);
-		constructor.params = List.<JCVariableDecl>of(arg);
-		JCAssign assign = maker.Assign(maker.Ident(fieldName), maker.Ident(argname));
-		JCBlock constrbody = maker.Block(0, List.<JCStatement>of(maker.Exec(assign)));
+		JCVariableDecl arg = maker.VarDef(maker.Modifiers(0), argname,
+				maker.Ident(node.toName(instancetype.toString())), null);
+		constructor.params = List.<JCVariableDecl> of(arg);
+		JCAssign assign = maker.Assign(maker.Ident(fieldName),
+				maker.Ident(argname));
+		JCBlock constrbody = maker.Block(0,
+				List.<JCStatement> of(maker.Exec(assign)));
 		constructor.body = constrbody;
-		
+
 		injectMethod(node.up(), constructor);
 	}
-	
-	private void handleMethods(JavacNode node, JavacTreeMaker maker, Class<?> instancetype, JavacNode fieldNode) {
-		Name fieldName = removePrefixFromField(fieldNode);
-		Class<?>[] interfaces = instancetype.getInterfaces();
-		if (interfaces.length > 0) for (Class<?> i : interfaces) {
-			handleMethods(node, maker, i, fieldNode);
-		}
-		for (Method m : instancetype.getDeclaredMethods()) {
-			if (Modifier.isPublic(m.getModifiers()) && !Modifier.isStatic(m.getModifiers()) && !methodManuallyExists(m, node, maker)) {
-				ListBuffer<JCStatement> statements = new ListBuffer<JCStatement>();
-				TypeTag temp = handlePrimitiveType(m.getReturnType().getName());
-				JCExpression returnType;
-				if (temp == null) {
-					returnType = handleArrayType(node, maker, m.getReturnType());
-				} else {
-					returnType = maker.TypeIdent(temp);
-				}
+
+	public static void handleMethods(JavacNode node, JavacTreeMaker maker,
+			Type classtype, JavacNode fieldNode, boolean withBody) {
+		ListBuffer<JCVariableDecl> parameters;
+		ListBuffer<JCExpression> arguments;
+		Type retn;
+		boolean useReturn;
+		
+		for (Symbol member : classtype.tsym.getEnclosedElements()) {
+
+			if (member.isConstructor())
+				continue;
+			ExecutableElement exElem = (ExecutableElement) member;
+			if (member.getKind().equals(ElementKind.METHOD) && exElem.getModifiers().contains(javax.lang.model.element.Modifier.PUBLIC)) {
+				useReturn = exElem.getReturnType().getKind() != TypeKind.VOID;
+				retn = (Type) exElem.getReturnType();
+				parameters = new ListBuffer<JCVariableDecl>();
+				arguments = new ListBuffer<JCExpression>();
+				drillIntoMethod(node,maker,classtype,member,exElem,parameters,arguments);
 				
-				// copying the arguments from the original source
-				ListBuffer<JCVariableDecl> arguments = new ListBuffer<JCVariableDecl>();
-				ListBuffer<JCExpression> parameters = new ListBuffer<JCExpression>();
-				int i = 0;
-				
-				String argname = "";
-				for (Class<?> o : m.getParameterTypes()) {
-					i++;
-					temp = handlePrimitiveType(o.getName());
-					argname = "arg" + i;
-					if (temp == null) {
-						JCExpression type = handleArrayType(node, maker, o);
-						arguments.add(maker.VarDef(maker.Modifiers(0), node.toName(argname), type, null));
-						parameters.add(maker.Ident(node.toName(argname)));
-					} else {
-						arguments.add(maker.VarDef(maker.Modifiers(0), node.toName(argname), maker.TypeIdent(temp), null));
-						parameters.add(maker.Ident(node.toName(argname)));
+				if(!methodManuallyExists( member.name.toString(),parameters.toList(),node, maker)){
+					JCExpression returnType=null;
+					try {
+						returnType = JavacResolution.typeToJCTree((Type) retn, node.getAst(), true);
+					} catch (TypeNotConvertibleException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
 					}
+					JCBlock body=null;
+					if(withBody){
+						Name fieldName = removePrefixFromField(fieldNode);
+					ListBuffer<JCStatement> stats = new ListBuffer<JCStatement>();
+					 JCMethodInvocation newCall = maker.Apply(NIL_EXPRESSION,
+					 maker.Select(maker.Ident(fieldName),  member.name),
+					arguments.toList());
+					 if(useReturn){
+						 stats.add(maker.Return(newCall));
+					 }else{
+						 stats.add(maker.Exec(newCall));	 
+					 }
+					
+					body = maker.Block(0, stats.toList());
+					}
+					JCMethodDecl method= maker.MethodDef(maker.Modifiers(Flags.PUBLIC),  member.name, returnType, List.<JCTypeParameter>nil(), parameters.toList(), List.<JCExpression>nil(), body, null);
+			
+					injectMethod(node, method);	
 				}
-				JCMethodInvocation newCall = maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(fieldName), node.up().toName(m.getName())), parameters.toList());
 				
-				if (handlePrimitiveType(m.getReturnType().getName()) != null && handlePrimitiveType(m.getReturnType().getName()).equals(CTC_VOID)) {
-					statements.add(maker.Exec(newCall));
-				} else {
-					statements.add(maker.Return(newCall));
-				}
-				JCBlock body = maker.Block(0, statements.toList());
-				JCMethodDecl decl = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC),
-				node.toName(m.getName()), returnType, List.<JCTypeParameter>nil(), 
-				arguments.toList(), List.<JCExpression>nil(), body, null), node.up().get(), node.getContext());
-				injectMethod(node.up(), decl);
 			}
 		}
+		}
+
+	public static void drillIntoMethod(JavacNode node, JavacTreeMaker maker, Type classtype, Symbol member, ExecutableElement exElem, ListBuffer<JCVariableDecl> parameters, ListBuffer<JCExpression> arguments) {
+		JavacTypes types = node.getTypesUtil();
+		ClassType ct;
+		if (classtype instanceof ClassType) {
+			ct = (ClassType) classtype;
+
+		} else {
+			return;
+		}
+		ExecutableType methodType = (ExecutableType) types.asMemberOf(
+				ct, member);
+		getParameters(node, maker, exElem, methodType, parameters,
+				arguments);
 		
 	}
-	
-	private boolean methodManuallyExists(Method m, JavacNode node, JavacTreeMaker maker) {
-		JCClassDecl annotatedclass = (JCClassDecl) node.up().get();
+
+	public static void getParameters(JavacNode node, JavacTreeMaker maker,
+			ExecutableElement exElem, ExecutableType methodType,
+			ListBuffer<JCVariableDecl> parameters,
+			ListBuffer<JCExpression> arguments) {
+		java.util.List<? extends VariableElement> paramList = exElem
+				.getParameters();
+		int i = 0;
+		for (TypeMirror param : methodType.getParameterTypes()) {
+				Name name = node.toName(paramList.get(i)
+					.getSimpleName().toString());
+			JCExpression type = null;
+			try {
+				type = JavacResolution.typeToJCTree((Type) param,
+						node.getAst(), true);
+			} catch (TypeNotConvertibleException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			parameters.append(maker.VarDef(maker.Modifiers(0), name,
+					type, null));
+
+			arguments.append(maker.Ident(name));
+			i++;
+		}
+	}
+
+	private static int getModifiers(Set<javax.lang.model.element.Modifier> modifiers) {
+		int value = 0;
+		for (javax.lang.model.element.Modifier modifier : modifiers) {
+			switch (modifier) {
+			case PUBLIC:
+				value = value | Flags.PUBLIC;
+				break;
+			case PROTECTED:
+				value = value | Flags.PROTECTED;
+				break;
+			case PRIVATE:
+				value = value | Flags.PRIVATE;
+				break;
+			case ABSTRACT:
+				value = value | Flags.ABSTRACT;
+				break;
+			case STATIC:
+				value = value | Flags.STATIC;
+				break;
+			case FINAL:
+				value = value | Flags.FINAL;
+				break;
+			case TRANSIENT:
+				value = value | Flags.TRANSIENT;
+				break;
+			case VOLATILE:
+				value = value | Flags.VOLATILE;
+				break;
+			case SYNCHRONIZED:
+				value = value | Flags.SYNCHRONIZED;
+				break;
+			case NATIVE:
+				value = value | Flags.NATIVE;
+				break;
+			case STRICTFP:
+				value = value | Flags.STRICTFP;
+				break;
+			}
+		}
+		return value;
+	}
+
+	private static boolean methodManuallyExists(String methodname ,List<JCVariableDecl>parameters, JavacNode node,
+			JavacTreeMaker maker) {
+		JCClassDecl annotatedclass = (JCClassDecl) node.get();
 		for (JCTree member : annotatedclass.getMembers()) {
 			if (member.getKind() == com.sun.source.tree.Tree.Kind.METHOD) {
 				JCMethodDecl method = (JCMethodDecl) member;
 				if (!method.getName().equals(node.toName("<init>"))) {
-					if (m.getName().equals(method.getName().toString()) && parametersEquals(node, maker, m.getParameterTypes(), method.getParameters())) {
+					if (methodname.equals(method.getName().toString())
+							&& parametersEquals(
+									parameters,
+									method.getParameters())) {
 						return true;
 					}
-					
+
 				}
 			}
 		}
 		return false;
 	}
-	
-	private boolean parametersEquals(JavacNode node, JavacTreeMaker maker, Class<?>[] parameterTypes, List<JCVariableDecl> list) {
-		if (list.size() == parameterTypes.length) {
+
+	public static boolean parametersEquals(
+			 List<JCVariableDecl> parameterTypes, List<JCVariableDecl> list) {
+		if (list.size() == parameterTypes.size()) {
 			for (int i = 0; i < list.size(); i++) {
-			String k = handleArrayType(node, maker, parameterTypes[i]).toString();
+				String k = parameterTypes.get(i).getType().toString();
 				String p = list.get(i).getType().toString();
 				if (!k.equals(p)) {
 					return false;
-				} else {
-					
 				}
 			}
 			return true;
 		}
 		return false;
 	}
-	
-	private JCExpression handleArrayType(JavacNode node, JavacTreeMaker maker, Class<?> clazz) {
-		int n = 0;
-		while (clazz.isArray()) {
-			clazz = clazz.getComponentType();
-			n++;
-		}
-		JCExpression type = JediJavacUtil.genTypeRef(node.up(), clazz.getName());
-		
-		while (n > 0) {
-			type = maker.TypeArray(type);
-			n--;
-		}
-		return type;
-	}
+
+
 }

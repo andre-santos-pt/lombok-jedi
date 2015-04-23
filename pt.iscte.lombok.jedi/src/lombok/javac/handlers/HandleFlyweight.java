@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.Flyweight;
 import lombok.core.AnnotationValues;
+import lombok.core.AST.Kind;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
@@ -95,6 +96,18 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 		
 
 		JavacTreeMaker maker = node.up().getTreeMaker();
+		for (JavacNode subnode : node.up().down()) {
+			if(subnode.getKind().equals(Kind.METHOD)){
+ 				JCMethodDecl method = ((JCMethodDecl)subnode.get());
+ 				if(method.restype==null ){
+ 					if(method.mods.flags==Flags.PUBLIC){
+ 						subnode.addError("Class annotated with @Singleton cannot have a public constructor.");
+ 					}
+ 					
+ 				}
+ 					
+ 			}	
+		}
 		if(annotation.getInstance().factory()){
 			ListBuffer<JCVariableDecl> flyweightIntrinsic = new ListBuffer<JCVariableDecl>();
 			notificationValitations(flyweightIntrinsic, maker, node);

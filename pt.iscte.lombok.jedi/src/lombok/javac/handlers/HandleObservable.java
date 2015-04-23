@@ -22,8 +22,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.regex.Pattern;
 
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+
 import lombok.Observable;
 import lombok.core.AnnotationValues;
+import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
@@ -32,6 +36,8 @@ import lombok.javac.JavacTreeMaker.TypeTag;
 import org.mangosdk.spi.ProviderFor;
 
 import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.code.Symbol;
+import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCAssign;
@@ -39,6 +45,7 @@ import com.sun.tools.javac.tree.JCTree.JCBlock;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
 import com.sun.tools.javac.tree.JCTree.JCExpressionStatement;
+import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
 import com.sun.tools.javac.tree.JCTree.JCForLoop;
 import com.sun.tools.javac.tree.JCTree.JCLiteral;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
@@ -55,119 +62,131 @@ import com.sun.tools.javac.util.Name;
  * Handles the {@code lombok.Getter} annotation for javac.
  */
 @ProviderFor(JavacAnnotationHandler.class)
+@HandlerPriority(20)
 public class HandleObservable extends JavacAnnotationHandler<Observable> {
 	
 	private static final List<JCExpression> NIL_EXPRESSION = List.nil();
-	public TypeTag handlePrimitiveType(String type){
-		
-		if(type.equals(int.class.getName())){
-			return CTC_INT;
-		}
-		
-		if(type.equals(double.class.getName())){
-			return CTC_DOUBLE;
-		}
-		
-		if(type.equals(float.class.getName())){
-			return CTC_FLOAT;
-		}
-		
-		if(type.equals(short.class.getName())){
-			return CTC_SHORT;
-		}
-		
-		if(type.equals(byte.class.getName())){
-			return CTC_BYTE;
-		}
-		
-		if(type.equals(long.class.getName())){
-			return CTC_LONG;
-		}
-		
-		if(type.equals(boolean.class.getName())){
-			return CTC_BOOLEAN;
-		}
-		
-		if(type.equals(char.class.getName())){
-			return CTC_CHAR;
-		}
-		if(type.equals("void")){
-			return CTC_VOID;
-		}
-		
-		return null;
-	}
-public Object handleinit(String type){
-		
-	if(int.class.getName().contains(type)){
-		return 0;
-	}
 	
-	if(double.class.getName().contains(type)){
-		return 0.0;
-	}
-	
-	if(float.class.getName().contains(type)){
-		return 0.0;
-	}
-	
-	if(short.class.getName().contains(type)){
-		return 0;
-	}
-	
-	if(byte.class.getName().contains(type)){
-		return 0;
-	}
-	
-	if(long.class.getName().contains(type)){
-		return 0;
-	}
-	
-	if(boolean.class.getName().contains(type)){
-		return false;
-	}
-	
-	if(char.class.getName().contains(type)){
-		return ' ';
-	}
-		
-		return null;
-	}
 
 	@Override public void handle(AnnotationValues<Observable> annotation, JCAnnotation ast, JavacNode node) {
-		ArrayList<String> list = new ArrayList<String>();
-		HashMap<String,ListBuffer<JCVariableDecl>> map=new HashMap<String,ListBuffer<JCVariableDecl>>();
+		ArrayList<String> customNotifiableNames = new ArrayList<String>();
+		ListBuffer<JCVariableDecl> notifiable=new ListBuffer<JCVariableDecl>();
 		JavacTreeMaker maker = node.up().getTreeMaker();	
 		Observable annotationInstance=  annotation.getInstance();
 		boolean validationisafter = annotationInstance.after();
+		//Class<?> customInterface = annotationInstance.type();
+		Object obj = annotation.getActualExpression("type");
+		System.out.println("obj = "+obj);
+		String listenermethod=annotationInstance.operation();
+		String listenername=annotationInstance.typeName();
+		int operation=0;
+		notificationValitations( maker, validationisafter, node.up(),notifiable,customNotifiableNames);
+		if(obj!=null)
+			if(!obj.equals(void.class)){
+				operation=operation+1;
+			}
+		
+		if(listenername.equals("") || listenername==null){
+			listenername=listenername+firstToUpper(node.up().getName())+"Listener";
+		}else{
+			operation=operation+2;
+		}
 		JCMethodDecl annotatedmethod=(JCMethodDecl)node.up().get();
-		notificationValitations( maker, validationisafter, node.up(),map,list);
-		for(int i=0;i<list.size();i++){
+		JavacNode fieldNode;
+		switch(operation){
+		case 1:
+			Symbol method=findMethod(node, notifiable, maker, obj);
+			JCFieldAccess field = (JCFieldAccess) obj;
+			Type type = field.selected.type;
+			 fieldNode = creatinglocalfield(node, maker,type);
+			creatingListenerManagement(node, maker, fieldNode, type);
+			if(!listenermethod.equals("")&&listenermethod!=null){
+				notifyingObservers(node, notifiable, maker, validationisafter, annotatedmethod, fieldNode,listenermethod,false);	
+			}else{
+				notifyingObservers(node, notifiable, maker, validationisafter, annotatedmethod, fieldNode,method.name.toString(),false);	
+			}
+			break;
+		case 2:
+			if(listenermethod.equals("")||listenermethod==null){
+				listenermethod="notify";
+			}
 			
-			JCClassDecl interf = creatingInterfaceListener(node, map.get(list.get(i)).toList(),list.get(i), maker);
-			JavacNode fieldNode = creatinglocalfield(node, maker,interf,list.get(i));
-			creatingListenerManagement(node, maker, fieldNode, interf);
-			notifyingObservers(node, map.get(list.get(i)),list.get(i), maker, validationisafter, annotatedmethod, fieldNode, interf);	
+			JCClassDecl interf = creatingInterfaceListener(node, notifiable.toList(),customNotifiableNames,listenername, maker,listenermethod);
+			fieldNode = creatinglocalfield(node, maker,interf.type);
+			creatingListenerManagement(node, maker, fieldNode, interf.type);
+			notifyingObservers(node, notifiable, maker, validationisafter, annotatedmethod, fieldNode,listenermethod,true);	
+			break;
+		case 3: node.addError("Either you set a Listener, or choose a name for the creation of one.");
+		break;
 		}
 		
+		
+		
+		
+		
 	}
-	private JavacNode creatinglocalfield(JavacNode node, JavacTreeMaker maker, JCClassDecl interfdecl,String group) {
-		JCExpression Arraytype=maker.TypeApply(handleArrayType(node, maker, java.util.ArrayList.class),List.<JCExpression>of( maker.Ident(interfdecl.name) ));
-		JCExpression listtype=maker.TypeApply(handleArrayType(node, maker, java.util.List.class),List.<JCExpression>of( maker.Ident(interfdecl.name) ));
+	private Symbol findMethod(JavacNode node, ListBuffer<JCVariableDecl> notifiable,
+			JavacTreeMaker maker, Object obj) {
+		Symbol method = null;
+		int i=0;
+		if(obj!=null)
+		if(!obj.equals(void.class)){
+			JCFieldAccess field = (JCFieldAccess) obj;
+			Type interfacetype = field.selected.type;
+			
+			if(!interfacetype.tsym.isInterface()){
+				node.addError("The value of the atribute type can only be an interface.");
+			}else{
+				for (Symbol member : interfacetype.tsym.getEnclosedElements()) {
+
+					ExecutableElement exElem = (ExecutableElement) member;
+					if (member.getKind().equals(ElementKind.METHOD) && exElem.getModifiers().contains(javax.lang.model.element.Modifier.PUBLIC)) {
+						
+						ListBuffer<JCVariableDecl> parameters = new ListBuffer<JCVariableDecl>();
+						ListBuffer<JCExpression> arguments = new ListBuffer<JCExpression>();
+						
+						HandleWrapper.drillIntoMethod(node, maker, interfacetype, member, exElem, parameters, arguments);
+						if(HandleWrapper.parametersEquals( parameters.toList(), notifiable.toList()))
+						method= member;
+						i++;
+					}
+				}
+				
+			}
+			
+		}
+		if(i>1)
+			node.addError("Multiple possible methods found.");
+		
+		if(method==null){
+			String types = "";
+			int pos=0 ;
+		for (JCVariableDecl var : notifiable) {
+			types=types+""+ var.vartype.toString();
+			if(pos<notifiable.size()-2)
+				types=types+",";
+		}
+			node.addError("The interface contains no method with the argument types ("+types+")");
+		}
+		return method;
+	}
+	private JavacNode creatinglocalfield(JavacNode methodNode, JavacTreeMaker maker, Type interftype) {
+		JCExpression Arraytype=maker.TypeApply(handleArrayType(methodNode, maker, java.util.ArrayList.class),List.<JCExpression>of( maker.Ident(methodNode.toName(interftype.toString())) ));
+		JCExpression listtype=maker.TypeApply(handleArrayType(methodNode, maker, java.util.List.class),List.<JCExpression>of( maker.Ident(methodNode.toName(interftype.toString())) ));
 		JCNewClass fieldinit = maker.NewClass(null, List.<JCExpression>nil(), Arraytype, NIL_EXPRESSION, null);
-		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE|Flags.FINAL), node.toName(node.up().getName()+""+firstToUpper(group)+"Listeners"),listtype,fieldinit);
-		JavacNode fieldNode = injectField(node.up().up(), field);
+		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE|Flags.FINAL), methodNode.toName(methodNode.up().getName()+"Listeners"),listtype,fieldinit);
+		JavacNode fieldNode = injectField(methodNode.up().up(), field);
 		return fieldNode;
 	}
-	private String firstToUpper(String group) {
+	private String firstToUpper(String word) {
 		String first="";
 		String rest="";
-		for(int i =0;i<group.length();i++){
+		for(int i =0;i<word.length();i++){
 			if(i==0){
-				first=first+group.charAt(i);
+				first=first+word.charAt(i);
 				first=first.toUpperCase();
 			}else{
-				rest=rest+group.charAt(i);;
+				rest=rest+word.charAt(i);;
 			}
 		}
 		
@@ -176,7 +195,7 @@ public Object handleinit(String type){
 	}
 
 
-	private void notifyingObservers(JavacNode node, ListBuffer<JCVariableDecl> notifiable, String string, JavacTreeMaker maker, boolean validationisafter, JCMethodDecl annotatedmethod, JavacNode fieldNode, JCClassDecl interf) {
+	private void notifyingObservers(JavacNode methodNode, ListBuffer<JCVariableDecl> notifiable, JavacTreeMaker maker, boolean validationisafter, JCMethodDecl annotatedmethod, JavacNode fieldNode,String methodname,boolean argumentThis) {
 		Name fieldName = removePrefixFromField(fieldNode);
 		ListBuffer<JCStatement> statements;
 		statements = new ListBuffer<JCStatement>();
@@ -184,9 +203,9 @@ public Object handleinit(String type){
 		ListBuffer<JCStatement> init = new ListBuffer<JCStatement>();  // For (X ; _ ; _) 
 		ListBuffer<JCExpression>parameters= new ListBuffer<JCExpression>(); 
 		//FOR (_ ; _.size(); _)
-		JCExpression sizecall=maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(fieldName), node.up().toName("size")), List.<JCExpression>nil());
+		JCExpression sizecall=maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(fieldName), methodNode.up().toName("size")), List.<JCExpression>nil());
 		// For (X ; _ ; _) 
-		JCStatement i=maker.VarDef(maker.Modifiers(0),node.toName("i") ,maker.TypeIdent(CTC_INT), maker.Literal(0)); // int i=0
+		JCStatement i=maker.VarDef(maker.Modifiers(0),methodNode.toName("i") ,maker.TypeIdent(CTC_INT), maker.Literal(0)); // int i=0
 		init.add(i);
 		// For (_ ; X ; _) 
 		JCExpression cond = maker.Binary(CTC_LESS_THAN, maker.Ident(((JCVariableDecl)i).name), sizecall); // i<fieldName.size()
@@ -196,25 +215,17 @@ public Object handleinit(String type){
 		JCExpression steprightside =maker.Binary(CTC_PLUS, maker.Ident(((JCVariableDecl)i).name),maker.Literal(1)); // i +1
 		JCAssign stepExpressions= maker.Assign(stepleftside, steprightside);  // append(i) com (i+1)  	
 		step.add(maker.Exec(stepExpressions));
-		parameters.add(maker.Ident(node.toName("this")));
+		if(argumentThis)
+		parameters.add(maker.Ident(methodNode.toName("this")));
 		if(notifiable.size()>0){
 		List<JCVariableDecl> notifiableparams =  notifiable.toList();
 		for ( int k=0;k<notifiableparams.size();k++)
 		parameters.add(maker.Ident(notifiableparams.get(k).getName()));
 		
-		for ( int k=0;k<notifiableparams.size();k++){
-			if(notifiableparams.get(k).getInitializer()!=null){
-				parameters.add(notifiableparams.get(k).getInitializer());	
-			}else{
-				parameters.add(initializer(notifiableparams.get(k).vartype,maker));
-			}
-		}
-			
-			
 		}
 		
-		JCMethodInvocation getcall=maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(fieldName), node.up().toName("get")), List.<JCExpression>of(maker.Ident(((JCVariableDecl)i).name)));//fieldname.get(i))
-		JCMethodInvocation notifycall=maker.Apply(NIL_EXPRESSION, maker.Select(getcall, node.toName("notify")), parameters.toList()); // previous/.notify()
+		JCMethodInvocation getcall=maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(fieldName), methodNode.up().toName("get")), List.<JCExpression>of(maker.Ident(((JCVariableDecl)i).name)));//fieldname.get(i))
+		JCMethodInvocation notifycall=maker.Apply(NIL_EXPRESSION, maker.Select(getcall, methodNode.toName(methodname)), parameters.toList()); // previous/.notify()
 		//add the complete statement
 		statements.add(maker.Exec(notifycall));
 		//define the body with all the statements
@@ -230,17 +241,10 @@ public Object handleinit(String type){
 			annotatedmethod.body.stats=annotatedmethod.body.stats.prepend(forstat); //before
 		}
 	}
-	private JCExpression initializer(JCExpression vartype, JavacTreeMaker maker) {
-		if(handleinit(vartype.toString()) == null){
-			return maker.Literal(CTC_BOT, null);
-		}else{
-			return maker.Literal(handleinit(vartype.toString()));
-		}
-		
-	}
 
 
-	private void notificationValitations(JavacTreeMaker maker, boolean validationisafter, JavacNode methodnode, HashMap<String, ListBuffer<JCVariableDecl>> map, ArrayList<String> list) {
+
+	private void notificationValitations(JavacTreeMaker maker, boolean validationisafter, JavacNode methodnode, ListBuffer<JCVariableDecl> notifiable, ArrayList<String> customnames) {
 		List<JCAnnotation> notifyannotations;
 		JCVariableDecl var;
 				for (JavacNode nodel : methodnode.down()) {
@@ -257,51 +261,43 @@ public Object handleinit(String type){
 							JCAssign x=(JCAssign)notifyannotations.get(0).args.get(0);
 							 group =(String)((JCLiteral)x.rhs).value;	
 						}else{
-							 group=methodnode.getName();
+							 group=var.name.toString();
 						}
 						
 						
 						
-						if(map.get(group)==null){
-							list.add(group);
-							map.put(group, new ListBuffer<JCVariableDecl>());
+						//if(map.get(group)==null){
+							customnames.add(group);
+							notifiable.add(maker.VarDef(maker.Modifiers(0),var.name ,(JCExpression)var.getType() , var.getInitializer()));
 							
-						}
-						map.get(group).add(maker.VarDef(maker.Modifiers(0),var.name ,(JCExpression)var.getType() , var.getInitializer()));
+						//}
+					
 						
 					}
-				}else{
-					methodnode.addError("The method must have atleast one @ObserverNotify field");
 				}
 			}	
-		}
 			
+		}
+				if(notifiable.size()==0)
+					methodnode.addError("The method must have atleast one argument or field annotated with @ObserverNotify");
 	}
-	private JCClassDecl creatingInterfaceListener(JavacNode node, List<JCVariableDecl> map, String group, JavacTreeMaker maker) {
-		JCClassDecl interf = maker.ClassDef(maker.Modifiers(Flags.INTERFACE|Flags.PUBLIC), node.toName(firstToUpper(group)+"Listener"), List.<JCTypeParameter>nil(),null, List.<JCExpression>nil(), List.<JCTree>nil());
+	private JCClassDecl creatingInterfaceListener(JavacNode node, List<JCVariableDecl> notifiable, ArrayList<String> customNames,String listenerName, JavacTreeMaker maker,String methodname) {
+		
+		JCClassDecl interf = maker.ClassDef(maker.Modifiers(Flags.INTERFACE|Flags.PUBLIC), node.toName(firstToUpper(listenerName)), List.<JCTypeParameter>nil(),null, List.<JCExpression>nil(), List.<JCTree>nil());
 		
 		//injecting the interface
 		JavacNode interfnode = injectType(node.up().up(), interf);
-		//defining the interface's method
-		//defining the methods arguments
-		
 		JCClassDecl subject = (JCClassDecl)node.up().up().get();
 		JCVariableDecl subjectdeclared = maker.VarDef(maker.Modifiers(0),node.toName("subject") ,maker.Ident(subject.name) , null);
-		//verify that sends the subject to the observer
-		//JCMethodDecl verifywiththis = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(0), interfnode.toName("notify") ,maker.TypeIdent(CTC_VOID),
-		//List.<JCTypeParameter>nil(),List.<JCVariableDecl>of(subjectdeclared), List.<JCExpression>nil(), null, null), node.up().get(), node.up().getContext());
-		// injecting the method in the interface
-		//injectMethod(interfnode, verifywiththis);
-		//if it has @notifys it creates a notify() <-- with the fields annotated
-		if(map.size()>0){
+		if(notifiable.size()>0){
 			ListBuffer<JCVariableDecl> list = new ListBuffer<JCVariableDecl>();
-			for (int i=0;i<map.size();i++) {
-				list.add(maker.VarDef(maker.Modifiers(0), interfnode.toName("old"+firstToUpper(map.get(i).name.toString())), map.get(i).vartype, null));
+			for (int i=0;i<notifiable.size();i++) {
+				list.add(maker.VarDef(maker.Modifiers(0), interfnode.toName(firstToUpper(customNames.get(i))), notifiable.get(i).vartype, null));
 			}
-			for (int i=0;i<map.size();i++) {
-				list.add(maker.VarDef(maker.Modifiers(0), interfnode.toName("new"+firstToUpper(map.get(i).name.toString())), map.get(i).vartype, null));
-			}
-		JCMethodDecl verify = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(0), interfnode.toName("notify") ,maker.TypeIdent(CTC_VOID),
+			//for (int i=0;i<map.size();i++) {
+			//	list.add(maker.VarDef(maker.Modifiers(0), interfnode.toName("new"+firstToUpper(map.get(i).name.toString())), map.get(i).vartype, null));
+			//}
+		JCMethodDecl verify = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(0), interfnode.toName(methodname) ,maker.TypeIdent(CTC_VOID),
 				List.<JCTypeParameter>nil(),list.toList(), List.<JCExpression>nil(), null, null), node.up().get(), node.up().getContext());
 		// injecting the method in the interface
 		verify.params=verify.params.prepend(subjectdeclared);
@@ -310,7 +306,7 @@ public Object handleinit(String type){
 	
 		return interf;
 	}
-	private void creatingListenerManagement(JavacNode node, JavacTreeMaker maker, JavacNode fieldNode, JCClassDecl interf) {
+	private void creatingListenerManagement(JavacNode node, JavacTreeMaker maker, JavacNode fieldNode, Type interf) {
 		Name fieldName = removePrefixFromField(fieldNode);
 		ListBuffer<JCVariableDecl> args=new ListBuffer<JCVariableDecl>();
 		ListBuffer<JCExpression> params = new ListBuffer<JCExpression>() ;
@@ -321,7 +317,7 @@ public Object handleinit(String type){
 		
 		//the argument from the method addMethodListener()
 				Name argname=node.toName("listener");
-				args.add(maker.VarDef(maker.Modifiers(0),argname , maker.Ident(interf.name), null));
+				args.add(maker.VarDef(maker.Modifiers(0),argname , maker.Ident(node.toName(interf.toString())), null));
 				params.add(maker.Ident(argname));
 				//
 				// calling the method .add() from hashset
@@ -342,7 +338,7 @@ public Object handleinit(String type){
 		params= new ListBuffer<JCExpression>();
 		
 		// calling the method .remove() from hashset
-		args.add(maker.VarDef(maker.Modifiers(0),argname , maker.Ident(interf.name), null));
+		args.add(maker.VarDef(maker.Modifiers(0),argname , maker.Ident(node.toName(interf.toString())), null));
 		params.add(maker.Ident(argname));
 		JCMethodInvocation fieldmethodcallremove = maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(fieldName), node.up().toName("remove")), params.toList());
 		statements.add(maker.Exec(fieldmethodcallremove)); //turns the .remove call into a statement for the body

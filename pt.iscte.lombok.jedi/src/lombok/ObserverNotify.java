@@ -6,5 +6,5 @@ import java.lang.annotation.Target;
 
 @Target({ElementType.LOCAL_VARIABLE, ElementType.PARAMETER})
 public @interface ObserverNotify {
-	String name() default "";
+	String value() default "";
 }

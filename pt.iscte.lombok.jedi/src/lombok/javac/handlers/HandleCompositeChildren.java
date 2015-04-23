@@ -61,7 +61,7 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChi
 						
 						createMethodAdd(maker, typeNode.up(), list);
 						createMethodgetChildren(maker, typeNode.up(), list);
-						injectOnConstructor(maker, typeNode.up(), list);
+						injectOnConstructor(maker, typeNode.up());
 					}
 				}
 				
@@ -74,7 +74,7 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChi
 		
 	}
 	
-	private void injectOnConstructor(JavacTreeMaker maker, JavacNode node, JCVariableDecl list) {
+	private void injectOnConstructor(JavacTreeMaker maker, JavacNode node) {
 		boolean publiconstructor = false;
 		
 		boolean mainConstructor = false;
@@ -158,7 +158,7 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChi
 			clazz = clazz.getComponentType();
 			n++;
 		}
-		
+
 		// String typeName = clazz.isArray() ?
 		// clazz.getComponentType().getName() : ;
 		JCExpression type = JediJavacUtil.genTypeRef(node.up(), clazz.getName());
