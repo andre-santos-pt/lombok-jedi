@@ -2,8 +2,13 @@ package lombok.javac.handlers;
 
 import static lombok.javac.Javac.CTC_BOT;
 import static lombok.javac.handlers.JavacHandlerUtil.injectMethod;
+
+import java.awt.Composite;
+import java.util.Collection;
+
 import lombok.CompositeChildren;
 import lombok.CompositeComponent;
+import lombok.VisitableNode;
 import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
@@ -17,6 +22,7 @@ import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Types;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
+import com.sun.tools.javac.tree.JCTree.JCAssign;
 import com.sun.tools.javac.tree.JCTree.JCBlock;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
@@ -32,48 +38,107 @@ import com.sun.tools.javac.util.List;
 @HandlerPriority(8) 
 public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChildren> {
 	public void handle(AnnotationValues<CompositeChildren> annotation, JCAnnotation ast, JavacNode annotationNode) {
-		JavacNode typeNode = annotationNode.up();
-		JavacTreeMaker maker = typeNode.getTreeMaker();
-		Types types = Types.instance(typeNode.getAst().getContext());
-		JCVariableDecl list = (JCVariableDecl) annotationNode.up().get();
-		boolean isVisitableNode=false;
+		
+		
+		JavacNode fieldNode=annotationNode.up();
+		JCVariableDecl field = (JCVariableDecl) annotationNode.up().get();
+		boolean isCompositeNode=false;
 		//		Types types = Types.instance(typeNode.getContext());
-		for (JavacNode subnode : typeNode.up().down()) {
+		for (JavacNode subnode : fieldNode.up().down()) {
 			if(subnode.getKind()==Kind.ANNOTATION){
 				JCAnnotation ann =(JCAnnotation)subnode.get();
 				if(ann.annotationType.toString().equals("Composite")){
-					isVisitableNode=true;
+					isCompositeNode=true;
 				}
 			}
 		}
-		if(isVisitableNode){
-			List<Type> parameterTypes = list.sym.type.getTypeArguments();
-			if (parameterTypes.size() > 0) {
-				Type type = parameterTypes.get(0);
-				CompositeComponent containsAnnotation = type.tsym.getAnnotation(CompositeComponent.class);
-				if (containsAnnotation == null) {
-					annotationNode.up().addError("This Type Argument is not annotated with @CompositeComponent.");
-				} else {
-					List<Type> closure = types.closure(list.sym.type);
-					if (!iscollection(closure)) {
-						annotationNode.up().addError("This Type is not a subtype Collection.");
-					} else {
-						
-						createMethodAdd(maker, typeNode.up(), list);
-						createMethodgetChildren(maker, typeNode.up(), list);
-						injectOnConstructor(maker, typeNode.up());
-					}
-				}
+		if(isCompositeNode){
+			checkFieldCompatibility(fieldNode,
+					field);
 				
-			} else {
-				annotationNode.up().addError("The Type Arguments must be defined for this field.");
-			}
+		
 		}else{
-			annotationNode.up().up().addError("Only a class annotated with @Composite can have a field annotated with @CompositeChilden");
+			annotationNode.up().up().addError("Only a class annotated with "+Composite.class.getSimpleName()+" can have a field annotated with "+CompositeChildren.class.getSimpleName()+".");
 		}
 		
 	}
+
+	private void checkFieldCompatibility(JavacNode fieldNode,
+			JCVariableDecl field) {
+		
+		JavacTreeMaker maker = fieldNode.getTreeMaker();
+		Types types = Types.instance(fieldNode.getAst().getContext());
+		List<Type> parameterTypes = field.sym.type.getTypeArguments();
+		Type type;	
+		if(parameterTypes.size()>0){
+				 type = parameterTypes.get(0);	
+			}else{
+				 type =field.sym.type;
+			}
+			
+		CompositeComponent containsAnnotation = type.tsym.getAnnotation(CompositeComponent.class);
+			List<Type> closure = types.closure(field.sym.type);
+			
+			
+				if (!iscollection(closure)) {
+					if (parameterTypes.size() != 0) {
+						fieldNode.addError("This Type is not a subtype "+Collection.class.getSimpleName()+".");	
+					} else {
+						if (containsAnnotation == null) {
+							fieldNode.addError("This type must be a class annotated with @"+CompositeComponent.class.getSimpleName());
+							//fieldNode.addError("The type argument of this Collection must be annotated with  @ " + CompositeComponent.class.getSimpleName());
+							} else {
+								createMethodAdd(maker, fieldNode.up(), field);
+								createMethodgetSon(maker, fieldNode.up(), field);
+								injectOnConstructor(maker, fieldNode.up());
+							}
+						
+					}
+					
+				} else {
+					if (parameterTypes.size() > 0) {
+						if (parameterTypes.size() !=1) {
+							fieldNode.addError("The type "+type.tsym.toString()+" cannot have more than one type argument.");
+						}else{
+							if (containsAnnotation == null) {
+								fieldNode.addError("The type argument of this Collection must be annotated with  @ " + CompositeComponent.class.getSimpleName());
+							}else{
+								createMethodAddList(maker, fieldNode.up(), field);
+								createMethodgetChildren(maker, fieldNode.up(), field);
+								injectOnConstructor(maker, fieldNode.up());
+							}
+						}
+						
+					}else{
+						fieldNode.addError("The Type Arguments must be defined for this field.");
+					}
+				}
+			
+	}
 	
+	private void createMethodgetSon(JavacTreeMaker maker, JavacNode classnode,
+			JCVariableDecl list) {
+		String componentName = list.sym.type.toString();
+		JCTypeApply type = maker.TypeApply(handleArrayType(classnode, maker, java.util.Collection.class), List.<JCExpression>of(maker.Ident(classnode.toName(componentName))));
+		//JCMethodInvocation addcall = maker.Apply(List.<JCExpression>nil(), maker.Select(handleArrayType(classnode, maker, java.util.Collections.class), classnode.toName("unmodifiableCollection")), List.<JCExpression>of(maker.Ident(list.name)));
+		JCBlock body = maker.Block(0, List.<JCStatement>of(maker.Return((maker.Ident(list.name)))));
+		JCMethodDecl method = maker.MethodDef(maker.Modifiers(Flags.PUBLIC), classnode.toName("getChildren"), maker.Ident(classnode.toName(componentName)), List.<JCTypeParameter>nil(), List.<JCVariableDecl>nil(), List.<JCExpression>nil(), body, null);
+		injectMethod(classnode, method);
+		
+	}
+
+	private void createMethodAdd(JavacTreeMaker maker, JavacNode classnode,
+			JCVariableDecl list) {
+		String componentName = list.sym.type.toString();
+		JCVariableDecl param = maker.VarDef(maker.Modifiers(0), classnode.toName("parent"), maker.Ident(classnode.toName(componentName)), null);
+		//JCMethodInvocation addcall = maker.Apply(List.<JCExpression>nil(), maker.Select(maker.Ident(list.name), classnode.toName("add")), List.<JCExpression>of(maker.Ident(param.name)));
+		JCAssign assign = maker.Assign(maker.Ident(list.name), maker.Ident(param.name));
+		JCBlock body = maker.Block(0, List.<JCStatement>of(maker.Exec(assign)));
+		JCMethodDecl method = maker.MethodDef(maker.Modifiers(Flags.PUBLIC), classnode.toName("add"), maker.TypeIdent(lombok.javac.Javac.CTC_VOID), List.<JCTypeParameter>nil(), List.<JCVariableDecl>of(param), List.<JCExpression>nil(), body, null);
+		injectMethod(classnode, method);
+		
+	}
+
 	private void injectOnConstructor(JavacTreeMaker maker, JavacNode node) {
 		boolean publiconstructor = false;
 		
@@ -132,7 +197,7 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChi
 		
 	}
 	
-	private void createMethodAdd(JavacTreeMaker maker, JavacNode classnode, JCVariableDecl list) {
+	private void createMethodAddList(JavacTreeMaker maker, JavacNode classnode, JCVariableDecl list) {
 		String componentName = list.sym.type.getTypeArguments().get(0).toString();
 		JCVariableDecl param = maker.VarDef(maker.Modifiers(0), classnode.toName("parent"), maker.Ident(classnode.toName(componentName)), null);
 		JCMethodInvocation addcall = maker.Apply(List.<JCExpression>nil(), maker.Select(maker.Ident(list.name), classnode.toName("add")), List.<JCExpression>of(maker.Ident(param.name)));
@@ -151,7 +216,7 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChi
 		}
 		return iscollection;
 	}
-	
+
 	private JCExpression handleArrayType(JavacNode node, JavacTreeMaker maker, Class<?> clazz) {
 		int n = 0;
 		while (clazz.isArray()) {

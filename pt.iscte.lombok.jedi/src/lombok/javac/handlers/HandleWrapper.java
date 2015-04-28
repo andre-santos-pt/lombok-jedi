@@ -49,6 +49,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
 import lombok.AccessLevel;
+import lombok.Singleton;
 import lombok.Wrapper;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
@@ -82,9 +83,7 @@ import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.ListBuffer;
 import com.sun.tools.javac.util.Name;
 
-/**
- * Handles the {@code lombok.Getter} annotation for javac.
- */
+
 @ProviderFor(JavacAnnotationHandler.class)
 @HandlerPriority(12)
 public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
@@ -141,9 +140,13 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 		Type type = field.selected.type;
 		
 		JCClassDecl cl= (JCClassDecl) node.up().get();
-		
+		Wrapper annotationInstance=  annotation.getInstance();
+		String fieldName = annotationInstance.fieldName();
+		if(fieldName.equals("")||fieldName==null){
+			fieldName="_instance";
+		}
 		if(!cl.sym.isInterface()){
-			JavacNode fieldNode = createLocalField(node, maker, type);
+			JavacNode fieldNode = createLocalField(node, maker, type,fieldName);
 			handleConstructor(node, maker, type, fieldNode);
 			handleMethods(node.up(), maker, type, fieldNode,true);
 		}else{
@@ -155,10 +158,10 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 	}
 
 	private JavacNode createLocalField(JavacNode node, JavacTreeMaker maker,
-			Type instancetype) {
+			Type instancetype, String fieldName) {
 		JCVariableDecl field = maker.VarDef(
 				maker.Modifiers(Flags.FINAL),
-				node.toName("wrapTarget"),
+				node.toName(fieldName),
 				maker.Ident(node.toName(instancetype.toString())), null);
 		JavacNode fieldNode = injectField(node.up(), field);
 		return fieldNode;

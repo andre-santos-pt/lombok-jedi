@@ -59,9 +59,7 @@ import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.ListBuffer;
 import com.sun.tools.javac.util.Name;
 
-/**
- * Handles the {@code lombok.Getter} annotation for javac.
- */
+
 @ProviderFor(JavacAnnotationHandler.class)
 @HandlerPriority(20)
 public class HandleObserverNotify extends JavacAnnotationHandler<ObserverNotify> {

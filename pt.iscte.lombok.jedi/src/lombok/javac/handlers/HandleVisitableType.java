@@ -55,7 +55,6 @@ public class HandleVisitableType extends JavacAnnotationHandler<VisitableType> {
 	@Override public void handle(AnnotationValues<VisitableType> annotation, JCAnnotation ast, JavacNode annotationNode) {
 		JavacNode typeNode = annotationNode.up();
 		JavacTreeMaker maker = typeNode.getTreeMaker();
-		System.out.println("correu visitabletype");
 		JCClassDecl visitorInterface = maker.ClassDef(
 				maker.Modifiers(Flags.PUBLIC | Flags.STATIC | Flags.ABSTRACT), 
 				typeNode.toName(annotation.getInstance().visitorTypeName()),

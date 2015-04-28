@@ -46,9 +46,7 @@ import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.ListBuffer;
 
-/**
- * Handles the {@code lombok.Getter} annotation for javac.
- */
+
 @ProviderFor(JavacAnnotationHandler.class)
 public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 	
@@ -94,29 +92,40 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 
 	@Override public void handle(AnnotationValues<Flyweight> annotation, JCAnnotation ast, JavacNode node) {
 		
-
+		
 		JavacTreeMaker maker = node.up().getTreeMaker();
+		if(((JCClassDecl)node.up().get()).sym.isInterface()){
+			node.addError("@Flyweight can not be used on Interfaces.");
+		}
+		if(HandleVisitableNode.isAbstractType(node.up())){
+			node.addError("@Flyweight can not be used on Abstract classes.");
+		}
 		for (JavacNode subnode : node.up().down()) {
 			if(subnode.getKind().equals(Kind.METHOD)){
  				JCMethodDecl method = ((JCMethodDecl)subnode.get());
  				if(method.restype==null ){
  					if(method.mods.flags==Flags.PUBLIC){
- 						subnode.addError("Class annotated with @Singleton cannot have a public constructor.");
+ 						subnode.addError("Class annotated with @Flyweight cannot have a public constructor.");
  					}
  					
  				}
  					
  			}	
 		}
+		
 		if(annotation.getInstance().factory()){
 			ListBuffer<JCVariableDecl> flyweightIntrinsic = new ListBuffer<JCVariableDecl>();
 			notificationValitations(flyweightIntrinsic, maker, node);
-			if(annotation.getInstance().factoryType()==0){
-				JCBlock body = defineSecondaryFactory(node, maker,flyweightIntrinsic);
-				JCMethodDecl verifywiththis = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC|Flags.STATIC), node.toName("getInstance") ,maker.Ident(((JCClassDecl)node.up().get()).name),
+			JCBlock body;
+			JCMethodDecl verifywiththis;
+			switch(annotation.getInstance().factoryType()){
+			case 0:
+				body = defineSecondaryFactory(node, maker,flyweightIntrinsic);
+				verifywiththis = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC|Flags.STATIC), node.toName("getInstance") ,maker.Ident(((JCClassDecl)node.up().get()).name),
 						List.<JCTypeParameter>nil(),flyweightIntrinsic.toList(), List.<JCExpression>nil(), body, null), node.up().get(), node.up().getContext());
 						injectMethod(node.up(), verifywiththis);
-			}else{
+			break;
+			case 1:
 				createField(node, maker, flyweightIntrinsic);
 				createConstructor(node,maker,flyweightIntrinsic);
 				ListBuffer<JCStatement> statements= new ListBuffer<JCStatement>();
@@ -125,20 +134,25 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 				gettingObject(node, flyweightIntrinsic.toList(), maker, statements);
 				
 				//verify that sends the subject to the observer
-				JCBlock body=maker.Block(0, statements.toList());
+				body=maker.Block(0, statements.toList());
 					
-				JCMethodDecl verifywiththis = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC|Flags.STATIC), node.toName("getInstance") ,maker.Ident(((JCClassDecl)node.up().get()).name),
+				verifywiththis = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC|Flags.STATIC), node.toName("getInstance") ,maker.Ident(((JCClassDecl)node.up().get()).name),
 				List.<JCTypeParameter>nil(),flyweightIntrinsic.toList(), List.<JCExpression>nil(), body, null), node.up().get(), node.up().getContext());
 				injectMethod(node.up(), verifywiththis);	
+			break;
+			default:
+				node.addError("The value of factoryType can only be 0 or 1");
+			break;
 			}
+
 			
 		}
 		
 
-		new HandleFieldDefaults().generateFieldDefaultsForType(node.up(), node, AccessLevel.PRIVATE, true, true);
+		//new HandleFieldDefaults().generateFieldDefaultsForType(node.up(), node, AccessLevel.PRIVATE, true, true);
 		
 		// TODO move this to the end OR move it to the top in eclipse.
-		new HandleConstructor().generateAllArgsConstructor(node.up(), AccessLevel.PUBLIC, "", SkipIfConstructorExists.YES, node);
+		new HandleConstructor().generateAllArgsConstructor(node.up(), AccessLevel.PRIVATE, "", SkipIfConstructorExists.NO, node);
 		new HandleGetter().generateGetterForType(node.up(), node, AccessLevel.PUBLIC, true);
 		new HandleEqualsAndHashCode().generateEqualsAndHashCodeForType(node.up(), node);
 		new HandleToString().generateToStringForType(node.up(), node);
@@ -317,7 +331,9 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 				}
 			}	
 		}
-				
+				if(shareable.size()<1){
+					node.up().up().addError("Flyweight must contain 1 or more @FlyweightObjects");
+				}
 	}
 	private JCExpression definemap(List<JCVariableDecl> flyobjects, int i, JavacNode node, JavacTreeMaker maker,boolean test){
 		ListBuffer<JCExpression> typeargs = new ListBuffer<JCExpression>();

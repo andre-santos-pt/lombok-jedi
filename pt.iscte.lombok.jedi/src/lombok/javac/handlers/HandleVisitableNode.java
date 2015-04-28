@@ -30,10 +30,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.CompositeChildren;
+import lombok.VisitableChildren;
 import lombok.VisitableNode;
 import lombok.VisitableType;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
+import lombok.core.AST.Kind;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
@@ -76,53 +79,58 @@ public class HandleVisitableNode extends JavacAnnotationHandler<VisitableNode> {
 		Types types = Types.instance(typeNode.getAst().getContext());
 		
 		JCClassDecl clazz = (JCClassDecl) annotationNode.up().get();
-		Type type = clazz.sym.type;
-		// JavaFileManager javaFileManager =
-		// annotationNode.getContext().get(JavaFileManager.class);
-		// System.out.println(javaFileManager);
-		// try {
-		// System.out.println(StandardLocation.SOURCE_OUTPUT.getName());
-		// Iterable<JavaFileObject> list =
-		// javaFileManager.list(StandardLocation.SOURCE_OUTPUT, "",
-		// EnumSet.of(JavaFileObject.Kind.CLASS), true);
-		// for (JavaFileObject file : list) {
-		// System.out.println("F: " + file);
-		// }
-		// }
-		// catch (IOException e) {
-		// // TODO Auto-generated catch block
-		// e.printStackTrace();
-		// }
-		
-		// Enter enter = Enter.instance(annotationNode.getContext());
-		// enter.getTopLevelEnv(tree)
-		// Env<AttrContext> env = enter.getClassEnv(clazz.sym);
-		// System.out.println("ENV:" + env);
-		// for(Env<AttrContext> e : env) {
-		// System.out.println("\t" + e);
-		// }
-		
-		List<Type> closure = types.closure(type);
-		for (Type s : closure) {
-			
-			ClassType ct = (ClassType) s;
-			VisitableType ann = ct.tsym.getAnnotation(VisitableType.class);
-			
-			if (ann != null) {
-				
-				if (!subtypes.containsKey(ct.toString())) subtypes.put(ct.toString(), new HashSet<Type>());
-				subtypes.get(ct.toString()).add(type);
-				String visitorType = ct.toString() + "." + ann.visitorTypeName();
-				injectAcceptMethod(typeNode, maker, type, visitorType);
-			}
+		int count=0;
+		for (JavacNode subnode : annotationNode.up().down()) {
+			if(subnode.getKind().equals(Kind.FIELD)){
+				for (JavacNode fieldannotations : subnode.down()) {
+					if(fieldannotations.getKind().equals(Kind.ANNOTATION)){
+						JCAnnotation ann= (JCAnnotation)fieldannotations.get();
+						if(ann.type.toString().equals(VisitableChildren.class.getName())){
+							count++;
+							
+						}
 
+
+
+					}
+
+
+				}
+
+			}
 		}
+		if(count>1){
+			typeNode.addError("Cannot have more than one field annotated with @"+VisitableChildren.class.getSimpleName());
+		}else
+		if(!clazz.sym.isInterface()){
+			
+			Type type = clazz.sym.type;
+			
+			List<Type> closure = types.closure(type);
+			for (Type s : closure) {
+				
+				ClassType ct = (ClassType) s;
+				VisitableType ann = ct.tsym.getAnnotation(VisitableType.class);
+				
+				if (ann != null) {
+					if (!subtypes.containsKey(ct.toString())) 
+						subtypes.put(ct.toString(), new HashSet<Type>());
+					subtypes.get(ct.toString()).add(type);
+					String visitorType = ct.toString() + "." + ann.visitorTypeName();
+					injectAcceptMethod(typeNode, maker, type, visitorType);
+				}
+
+			}	
+		}else{
+			annotationNode.addError("Cannot be used on Interfaces.");
+		}
+		
 		
 	}
 
 	static void injectAcceptMethod(JavacNode typeNode, JavacTreeMaker maker, Type type, String visitorType) {
 		boolean abstractType = isAbstractType(typeNode);
-		
+		Types types = Types.instance(typeNode.getAst().getContext());
 		JCVariableDecl param = maker.VarDef(maker.Modifiers(Flags.PARAMETER), typeNode.toName("visitor"), JediJavacUtil.chainDotsString(typeNode, visitorType),
 		// maker.Ident(visitorType),
 				null);
@@ -140,7 +148,8 @@ public class HandleVisitableNode extends JavacAnnotationHandler<VisitableNode> {
 				
 				for (JCVariableDecl field : HandleVisitableChildren.getChildrenVariables(type.toString())) {
 					
-					if(!field.sym.type.tsym.toString().equals("java.util.List")){
+					List<Type> closure = types.closure(field.sym.type);
+					if (!HandleCompositeChildren.iscollection(closure)) {
 						JCExpression callAccept = maker.Apply(List.<JCExpression>nil(), maker.Select(maker.Ident(field.name), typeNode.toName("accept")), List.<JCExpression>of(maker.Ident(typeNode.toName("visitor"))));
 						statementsList.add(maker.Exec(callAccept));
 					}else{

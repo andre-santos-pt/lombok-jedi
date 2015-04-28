@@ -58,9 +58,7 @@ import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.ListBuffer;
 import com.sun.tools.javac.util.Name;
 
-/**
- * Handles the {@code lombok.Getter} annotation for javac.
- */
+
 @ProviderFor(JavacAnnotationHandler.class)
 @HandlerPriority(20)
 public class HandleObservable extends JavacAnnotationHandler<Observable> {
@@ -76,7 +74,6 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 		boolean validationisafter = annotationInstance.after();
 		//Class<?> customInterface = annotationInstance.type();
 		Object obj = annotation.getActualExpression("type");
-		System.out.println("obj = "+obj);
 		String listenermethod=annotationInstance.operation();
 		String listenername=annotationInstance.typeName();
 		int operation=0;
@@ -327,7 +324,7 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 				
 				JCBlock body = maker.Block(0, statements.toList());
 				//defining and injecting the add method
-				JCMethodDecl subscribe = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC), node.toName("subscribeTo"+node.up().getName()) ,maker.TypeIdent(CTC_VOID),
+				JCMethodDecl subscribe = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC), node.toName("subscribeTo"+firstToUpper(node.up().getName())) ,maker.TypeIdent(CTC_VOID),
 						List.<JCTypeParameter>nil(),args.toList(), List.<JCExpression>nil(), body,null ), node.up().get(), node.getContext());
 				injectMethod(node.up().up(), subscribe);
 		//
@@ -345,7 +342,7 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 		
 		JCBlock removeMethodBody = maker.Block(0, statements.toList());
 		//defining and injecting the remove method
-		JCMethodDecl unsubscribe = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC), node.toName("unsubscribeFrom"+node.up().getName()) ,maker.TypeIdent(CTC_VOID),
+		JCMethodDecl unsubscribe = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC), node.toName("unsubscribeFrom"+firstToUpper(node.up().getName())) ,maker.TypeIdent(CTC_VOID),
 		List.<JCTypeParameter>nil(),args.toList(), List.<JCExpression>nil(), removeMethodBody,null ), node.up().get(), node.getContext());
 		injectMethod(node.up().up(), unsubscribe);
 		//

@@ -56,35 +56,23 @@ import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.ListBuffer;
 import com.sun.tools.javac.util.Name;
 
-/**
- * Handles the {@code lombok.Getter} annotation for javac.
- */
+
 @ProviderFor(JavacAnnotationHandler.class)
 public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 
 	private static final List<JCExpression> NIL_EXPRESSION = List.nil();
 
 	
-	/**
-	 * Generates a getter on the stated field.
-	 * 
-	 * Used by {@link HandleData}.
-	 * 
-	 * The difference between this call and the handle method is as follows:
-	 * 
-	 * If there is a {@code lombok.Getter} annotation on the field, it is used and the
-	 * same rules apply (e.g. warning if the method already exists, stated access level applies).
-	 * If not, the getter is still generated if it isn't already there, though there will not
-	 * be a warning if its already there. The default access level is used.
-	 * 
-	 * @param fieldNode The node representing the field you want a getter for.
-	 * @param pos The node responsible for generating the getter (the {@code @Data} or {@code @Getter} annotation).
-	 */
-
 	
 	@Override public void handle(AnnotationValues<Singleton> annotation, JCAnnotation ast, JavacNode node) {
 		boolean haspublic = false;
 		JavacTreeMaker maker = node.up().getTreeMaker();
+		if(((JCClassDecl)node.up().get()).sym.isInterface()){
+			node.addError("@Singleton can not be used on Interfaces.");
+		}
+		if(HandleVisitableNode.isAbstractType(node.up())){
+			node.addError("@Singleton can not be used on Abstract classes.");
+		}
 		for (JavacNode subnode : node.up().down()) {
 			if(subnode.getKind().equals(Kind.METHOD)){
  				JCMethodDecl method = ((JCMethodDecl)subnode.get());
@@ -100,12 +88,16 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 		}
 		if(!haspublic){
 			Singleton annotationInstance=  annotation.getInstance();
-			String methodname = annotationInstance.value();
-			if(methodname.equals("")||methodname==null){
+			String methodname = annotationInstance.methodName();
+			if("".equals(methodname)){
 				methodname="getInstance";
 			}
+			String fieldName = annotationInstance.fieldName();
+			if(fieldName.equals("")||fieldName==null){
+				fieldName="_instance";
+			}
 			JCClassDecl clazz = (JCClassDecl)node.up().get();
-			JavacNode fieldNode = createLocalField(node, maker, clazz);
+			JavacNode fieldNode = createLocalField(node, maker, clazz,fieldName);
 			createConstructor(node, maker);
 			createGetMethod(node, maker, clazz, fieldNode,methodname);	
 		}else{
@@ -117,8 +109,8 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 	}
 
 
-	private JavacNode createLocalField(JavacNode node, JavacTreeMaker maker, JCClassDecl clazz) {
-		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE|Flags.STATIC), node.toName("_instance"),maker.Ident(clazz.name), null);
+	private JavacNode createLocalField(JavacNode node, JavacTreeMaker maker, JCClassDecl clazz, String fieldName) {
+		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE|Flags.STATIC), node.toName(fieldName),maker.Ident(clazz.name), null);
 		//JCVariableDecl uncleanField = maker.VarDef(maker.Modifiers(Flags.PRIVATE), x.name, cloneType(maker, x.defs, (JCTree)ast, node.getContext()), null);
 		//JCVariableDecl uncleanField = maker.VarDef(maker.Modifiers(Flags.PRIVATE), node.toName("$lombokUnclean"), maker.TypeIdent(Javac.CTC_BOOLEAN), null);
 		JavacNode fieldNode = injectField(node.up(), field);
@@ -126,7 +118,7 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 	}
 
 
-	private void createConstructor(JavacNode node, JavacTreeMaker maker) {
+	public static void createConstructor(JavacNode node, JavacTreeMaker maker) {
 		JCMethodDecl constructor = HandleConstructor.createConstructor(AccessLevel.PACKAGE, List.<JCAnnotation>nil(), node.up(), List.<JavacNode>nil(), null, node);
 		constructor.mods=maker.Modifiers(Flags.PRIVATE);
 		injectMethod(node.up(), constructor);
