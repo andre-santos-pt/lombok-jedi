@@ -807,8 +807,8 @@ public class JediJavacUtil {
 	 * The field carries the &#64;{@link SuppressWarnings}("all") annotation.
 	 * Also takes care of updating the JavacAST.
 	 */
-	public static void injectFieldAndMarkGenerated(JavacNode typeNode, JCVariableDecl field) {
-		injectField(typeNode, field, true);
+	public static void injectFieldAndMarkGenerated(JavacNode typeNode, JCVariableDecl field,String name) {
+		injectField(typeNode, field, name);
 	}
 	
 	/**
@@ -816,17 +816,15 @@ public class JediJavacUtil {
 	 * 
 	 * Also takes care of updating the JavacAST.
 	 */
-	public static JavacNode injectField(JavacNode typeNode, JCVariableDecl field) {
-		return injectField(typeNode, field, false);
-	}
 
-	private static JavacNode injectField(JavacNode typeNode, JCVariableDecl field, boolean addGenerated) {
+
+	public static JavacNode injectField(JavacNode typeNode, JCVariableDecl field, String name) {
 		JCClassDecl type = (JCClassDecl) typeNode.get();
 		
-		if (addGenerated) {
-			addSuppressWarningsAll(field.mods, typeNode, field.pos, getGeneratedBy(field), typeNode.getContext());
-			addGenerated(field.mods, typeNode, field.pos, getGeneratedBy(field), typeNode.getContext());
-		}
+		
+			//addSuppressWarningsAll(field.mods, typeNode, field.pos, getGeneratedBy(field), typeNode.getContext());
+			addGenerated(field.mods, typeNode, field.pos, getGeneratedBy(field), typeNode.getContext(),name);
+		
 		
 		List<JCTree> insertAfter = null;
 		List<JCTree> insertBefore = type.defs;
@@ -862,7 +860,7 @@ public class JediJavacUtil {
 	 * 
 	 * Also takes care of updating the JavacAST.
 	 */
-	public static void injectMethod(JavacNode typeNode, JCMethodDecl method) {
+	public static void injectMethod(JavacNode typeNode, JCMethodDecl method,String name) {
 		JCClassDecl type = (JCClassDecl) typeNode.get();
 		
 		if (method.getName().contentEquals("<init>")) {
@@ -884,8 +882,8 @@ public class JediJavacUtil {
 			}
 		}
 		
-		addSuppressWarningsAll(method.mods, typeNode, method.pos, getGeneratedBy(method), typeNode.getContext());
-		addGenerated(method.mods, typeNode, method.pos, getGeneratedBy(method), typeNode.getContext());
+		//addSuppressWarningsAll(method.mods, typeNode, method.pos, getGeneratedBy(method), typeNode.getContext());
+		addGenerated(method.mods, typeNode, method.pos, getGeneratedBy(method), typeNode.getContext(),name);
 		type.defs = type.defs.append(method);
 		
 		typeNode.add(method, Kind.METHOD);
@@ -898,10 +896,10 @@ public class JediJavacUtil {
 	 * @param type New type (class, interface, etc) to inject.
 	 * @return 
 	 */
-	public static JavacNode injectType(JavacNode typeNode, final JCClassDecl type) {
+	public static JavacNode injectType(JavacNode typeNode, final JCClassDecl type,String name) {
 		JCClassDecl typeDecl = (JCClassDecl) typeNode.get();
-		addSuppressWarningsAll(type.mods, typeNode, type.pos, getGeneratedBy(type), typeNode.getContext());
-		addGenerated(type.mods, typeNode, type.pos, getGeneratedBy(type), typeNode.getContext());
+		//addSuppressWarningsAll(type.mods, typeNode, type.pos, getGeneratedBy(type), typeNode.getContext());
+		addGenerated(type.mods, typeNode, type.pos, getGeneratedBy(type), typeNode.getContext(),name);
 		typeDecl.defs = typeDecl.defs.append(type);
 		return typeNode.add(type, Kind.TYPE);
 	}
@@ -949,7 +947,7 @@ public class JediJavacUtil {
 			addAnnotation(mods, node, pos, source, context, "edu.umd.cs.findbugs.annotations.SuppressFBWarnings", arg);
 		}
 	}
-	
+	/*
 	public static void addGenerated(JCModifiers mods, JavacNode node, int pos, JCTree source, Context context) {
 		if (!LombokOptionsFactory.getDelombokOptions(context).getFormatPreferences().generateGenerated()) return;
 		
@@ -957,7 +955,14 @@ public class JediJavacUtil {
 			addAnnotation(mods, node, pos, source, context, "javax.annotation.Generated", node.getTreeMaker().Literal("lombok"));
 		}
 	}
-	
+	*/
+	public static void addGenerated(JCModifiers mods, JavacNode node, int pos, JCTree source, Context context,String name) {
+		if (!LombokOptionsFactory.getDelombokOptions(context).getFormatPreferences().generateGenerated()) return;
+		
+		if (!Boolean.FALSE.equals(node.getAst().readConfiguration(ConfigurationKeys.ADD_GENERATED_ANNOTATIONS))) {
+			addAnnotation(mods, node, pos, source, context, "javax.annotation.Generated", node.getTreeMaker().Literal(name));
+		}
+	}
 	private static void addAnnotation(JCModifiers mods, JavacNode node, int pos, JCTree source, Context context, String annotationTypeFqn, JCExpression arg) {
 		boolean isJavaLangBased;
 		String simpleName; {

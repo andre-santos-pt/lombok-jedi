@@ -1,7 +1,7 @@
 package lombok.javac.handlers;
 
 import static lombok.javac.Javac.CTC_BOT;
-import static lombok.javac.handlers.JavacHandlerUtil.injectMethod;
+
 
 import java.util.ArrayList;
 
@@ -49,6 +49,7 @@ public class HandleCompositeComponent extends JavacAnnotationHandler<CompositeCo
 		Type type = clazz.sym.type;
 		JCClassDecl composite =HandleComposite.getComposite(((ClassType)type).toString());
 		CompositeComponent annotationInstance=  annotation.getInstance();
+	
 		String methodname = annotationInstance.methodName();
 		if(methodname.equals("")||methodname==null){
 			methodname="getParent";
@@ -57,11 +58,11 @@ public class HandleCompositeComponent extends JavacAnnotationHandler<CompositeCo
 		if(fieldName.equals("")||fieldName==null){
 			fieldName="parent";
 		}
-		JavacNode fieldnode=createParentField(annotationNode,maker,composite,fieldName);
-		createGetParent(annotationNode,maker,composite,fieldnode,methodname);
-		createConstructor(annotationNode,maker,composite,fieldnode);
+		JavacNode fieldnode=createParentField(annotationNode,maker,composite,fieldName,CompositeComponent.class.getName());
+		createGetParent(annotationNode,maker,composite,fieldnode,methodname,CompositeComponent.class.getName());
+		createConstructor(annotationNode,maker,composite,fieldnode,CompositeComponent.class.getName());
 	}
-	private void createConstructor(JavacNode annotationNode, JavacTreeMaker maker, JCClassDecl composite,JavacNode fieldnode) {
+	private void createConstructor(JavacNode annotationNode, JavacTreeMaker maker, JCClassDecl composite,JavacNode fieldnode,String annotationName) {
 		// TODO Auto-generated method stub
 		
 		ArrayList<List<JCVariableDecl>> constuctors =new ArrayList<List<JCVariableDecl>>();
@@ -87,11 +88,11 @@ public class HandleCompositeComponent extends JavacAnnotationHandler<CompositeCo
 			if(constuctors.size()>0){
 			for (List<JCVariableDecl> parameters : constuctors) {
 				createProtectedConstructorBasedOnPrivate(annotationNode, maker, composite,
-						fieldnode, thisargs, parameters);	
+						fieldnode, thisargs, parameters,annotationName);	
 			}
 			}else{
 				createDefaultProtectedConstructor(annotationNode, maker, composite,
-						fieldnode);	
+						fieldnode,annotationName);	
 				
 			}
 		}else{
@@ -102,7 +103,7 @@ public class HandleCompositeComponent extends JavacAnnotationHandler<CompositeCo
 	}
 	private void createProtectedConstructorBasedOnPrivate(JavacNode annotationNode,
 			JavacTreeMaker maker, JCClassDecl composite, JavacNode fieldnode,
-			ListBuffer<JCExpression> thisargs, List<JCVariableDecl> parameters) {
+			ListBuffer<JCExpression> thisargs, List<JCVariableDecl> parameters,String annotationName) {
 		JCVariableDecl parentclass = (JCVariableDecl) fieldnode.get();
 		ListBuffer<JCVariableDecl> args = new ListBuffer<JCVariableDecl>();
 		args.add(maker.VarDef(maker.Modifiers(0), annotationNode.toName("parentArg"), maker.Ident(composite.name), null));
@@ -125,10 +126,10 @@ public class HandleCompositeComponent extends JavacAnnotationHandler<CompositeCo
 		//JCExpression thiscall=maker.Apply(NIL_EXPRESSION,maker.Ident(annotationNode.toName("banana()")), List.<JCExpression>of(maker.Ident(var.name)));
 		
 		//typeNode.toName("$")
-		injectMethod(annotationNode.up(),constructor);
+		JediJavacUtil.injectMethod(annotationNode.up(),constructor,annotationName);
 	}
 	private void createDefaultProtectedConstructor(JavacNode annotationNode,
-			JavacTreeMaker maker, JCClassDecl composite, JavacNode fieldnode) {
+			JavacTreeMaker maker, JCClassDecl composite, JavacNode fieldnode,String annotationName) {
 		JCVariableDecl parentclass = (JCVariableDecl) fieldnode.get();
 		JCVariableDecl parent=maker.VarDef(maker.Modifiers(0), annotationNode.toName("parentArg"), maker.Ident(composite.name), null);
 		JCMethodDecl constructor = JediJavacUtil.createConstructor(AccessLevel.PACKAGE, List.<JCAnnotation>nil(), annotationNode.up(), List.<JavacNode>nil(), null, annotationNode);
@@ -142,20 +143,20 @@ public class HandleCompositeComponent extends JavacAnnotationHandler<CompositeCo
 		//JCExpression thiscall=maker.Apply(NIL_EXPRESSION,maker.Ident(annotationNode.toName("banana()")), List.<JCExpression>of(maker.Ident(var.name)));
 		
 		//typeNode.toName("$")
-		injectMethod(annotationNode.up(),constructor);
+		JediJavacUtil.injectMethod(annotationNode.up(),constructor,annotationName);
 	}
-	private void createGetParent(JavacNode node, JavacTreeMaker maker, JCClassDecl composite, JavacNode fieldnode, String methodname) {
+	private void createGetParent(JavacNode node, JavacTreeMaker maker, JCClassDecl composite, JavacNode fieldnode, String methodname,String annotationName) {
 		JCReturn statement= maker.Return(maker.Ident(node.toName(fieldnode.getName())));
 		JCBlock body= maker.Block(0, List.<JCStatement>of(statement));
 		JCMethodDecl getParent=maker.MethodDef(maker.Modifiers(Flags.PUBLIC),node.toName(methodname) , maker.Ident(composite.name), 
 				List.<JCTypeParameter>nil(), List.<JCVariableDecl>nil(), List.<JCExpression>nil(),body, null);
-		injectMethod(node.up(),getParent);
+		JediJavacUtil.injectMethod(node.up(),getParent,annotationName);
 		
 	}
-	private JavacNode createParentField(JavacNode node, JavacTreeMaker maker, JCClassDecl composite, String fieldName) {
+	private JavacNode createParentField(JavacNode node, JavacTreeMaker maker, JCClassDecl composite, String fieldName,String annotationName) {
 		// TODO Auto-generated method stub
 		JCVariableDecl field= maker.VarDef(maker.Modifiers(Flags.PRIVATE), node.toName(fieldName), maker.Ident(composite.name), null);
-		return JediJavacUtil.injectField(node.up(),field);
+		return JediJavacUtil.injectField(node.up(),field,annotationName);
 		
 	}
 	

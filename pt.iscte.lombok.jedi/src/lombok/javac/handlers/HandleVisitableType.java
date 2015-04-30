@@ -22,6 +22,7 @@
 package lombok.javac.handlers;
 
 import static lombok.javac.Javac.CTC_BOOLEAN;
+import lombok.CompositeChildren;
 import lombok.VisitableType;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
@@ -62,25 +63,26 @@ public class HandleVisitableType extends JavacAnnotationHandler<VisitableType> {
 				null, 
 				List.<JCExpression>nil(), 
 				List.<JCTree>nil());
-		
-		JavacNode visitorType = JediJavacUtil.injectType(typeNode, visitorInterface);
+		String annotationName= VisitableType.class.getName();
+		JavacNode visitorType = JediJavacUtil.injectType(typeNode, visitorInterface,annotationName);
 		
 		JCClassDecl clazz = (JCClassDecl) annotationNode.up().get();
 		Type type = clazz.sym.type;
 		
 		if(!HandleVisitableNode.isAbstractType(typeNode))
-			addVisitMethod(maker, typeNode, visitorType, type);
+			addVisitMethod(maker, typeNode, visitorType, type,annotationName);
 		
 		for(Type s : HandleVisitableNode.getVisitorNodes(type.toString()))
-			addVisitMethod(maker, typeNode, visitorType, s);
+			addVisitMethod(maker, typeNode, visitorType, s,annotationName);
 		
 		String visitorTypeName = type.toString() + "." + annotation.getInstance().visitorTypeName();
-		HandleVisitableNode.injectAcceptMethod(typeNode, maker, type, visitorTypeName);
+		
+		HandleVisitableNode.injectAcceptMethod(typeNode, maker, type, visitorTypeName,annotationName);
 	}
 	
 	
 	
-	private void addVisitMethod(JavacTreeMaker maker, JavacNode parent, JavacNode visitorType, Type s) {
+	private void addVisitMethod(JavacTreeMaker maker, JavacNode parent, JavacNode visitorType, Type s,String annotationName) {
 		JCVariableDecl param = maker.VarDef(maker.Modifiers(Flags.PARAMETER),
 				parent.toName("node"), 
 //				JavacHandlerUtil.chainDotsString(visitorType, s.toString()),
@@ -100,7 +102,7 @@ public class HandleVisitableType extends JavacAnnotationHandler<VisitableType> {
 				block,
 				null);
 		
-		JediJavacUtil.injectMethod(visitorType, visitMethod);
+		JediJavacUtil.injectMethod(visitorType, visitMethod,annotationName);
 	}
 	
 	

@@ -11,12 +11,6 @@ import static lombok.javac.Javac.CTC_LONG;
 import static lombok.javac.Javac.CTC_PLUS;
 import static lombok.javac.Javac.CTC_SHORT;
 import static lombok.javac.Javac.CTC_VOID;
-import static lombok.javac.handlers.JavacHandlerUtil.findAnnotations;
-import static lombok.javac.handlers.JavacHandlerUtil.injectField;
-import static lombok.javac.handlers.JavacHandlerUtil.injectMethod;
-import static lombok.javac.handlers.JavacHandlerUtil.injectType;
-import static lombok.javac.handlers.JavacHandlerUtil.recursiveSetGeneratedBy;
-import static lombok.javac.handlers.JavacHandlerUtil.removePrefixFromField;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,6 +19,7 @@ import java.util.regex.Pattern;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 
+import lombok.CompositeChildren;
 import lombok.Observable;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
@@ -71,6 +66,7 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 		ListBuffer<JCVariableDecl> notifiable=new ListBuffer<JCVariableDecl>();
 		JavacTreeMaker maker = node.up().getTreeMaker();	
 		Observable annotationInstance=  annotation.getInstance();
+		String annotationName=Observable.class.getName();
 		boolean validationisafter = annotationInstance.after();
 		//Class<?> customInterface = annotationInstance.type();
 		Object obj = annotation.getActualExpression("type");
@@ -95,8 +91,8 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 			Symbol method=findMethod(node, notifiable, maker, obj);
 			JCFieldAccess field = (JCFieldAccess) obj;
 			Type type = field.selected.type;
-			 fieldNode = creatinglocalfield(node, maker,type);
-			creatingListenerManagement(node, maker, fieldNode, type);
+			 fieldNode = creatinglocalfield(node, maker,type,annotationName);
+			creatingListenerManagement(node, maker, fieldNode, type,annotationName);
 			if(!listenermethod.equals("")&&listenermethod!=null){
 				notifyingObservers(node, notifiable, maker, validationisafter, annotatedmethod, fieldNode,listenermethod,false);	
 			}else{
@@ -108,9 +104,9 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 				listenermethod="notify";
 			}
 			
-			JCClassDecl interf = creatingInterfaceListener(node, notifiable.toList(),customNotifiableNames,listenername, maker,listenermethod);
-			fieldNode = creatinglocalfield(node, maker,interf.type);
-			creatingListenerManagement(node, maker, fieldNode, interf.type);
+			JCClassDecl interf = creatingInterfaceListener(node, notifiable.toList(),customNotifiableNames,listenername, maker,listenermethod,annotationName);
+			fieldNode = creatinglocalfield(node, maker,interf.type,annotationName);
+			creatingListenerManagement(node, maker, fieldNode, interf.type,annotationName);
 			notifyingObservers(node, notifiable, maker, validationisafter, annotatedmethod, fieldNode,listenermethod,true);	
 			break;
 		case 3: node.addError("Either you set a Listener, or choose a name for the creation of one.");
@@ -167,12 +163,12 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 		}
 		return method;
 	}
-	private JavacNode creatinglocalfield(JavacNode methodNode, JavacTreeMaker maker, Type interftype) {
+	private JavacNode creatinglocalfield(JavacNode methodNode, JavacTreeMaker maker, Type interftype,String annotationName) {
 		JCExpression Arraytype=maker.TypeApply(handleArrayType(methodNode, maker, java.util.ArrayList.class),List.<JCExpression>of( maker.Ident(methodNode.toName(interftype.toString())) ));
 		JCExpression listtype=maker.TypeApply(handleArrayType(methodNode, maker, java.util.List.class),List.<JCExpression>of( maker.Ident(methodNode.toName(interftype.toString())) ));
 		JCNewClass fieldinit = maker.NewClass(null, List.<JCExpression>nil(), Arraytype, NIL_EXPRESSION, null);
 		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE|Flags.FINAL), methodNode.toName(methodNode.up().getName()+"Listeners"),listtype,fieldinit);
-		JavacNode fieldNode = injectField(methodNode.up().up(), field);
+		JavacNode fieldNode = JediJavacUtil.injectField(methodNode.up().up(), field,annotationName);
 		return fieldNode;
 	}
 	private String firstToUpper(String word) {
@@ -193,7 +189,7 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 
 
 	private void notifyingObservers(JavacNode methodNode, ListBuffer<JCVariableDecl> notifiable, JavacTreeMaker maker, boolean validationisafter, JCMethodDecl annotatedmethod, JavacNode fieldNode,String methodname,boolean argumentThis) {
-		Name fieldName = removePrefixFromField(fieldNode);
+		Name fieldName = JediJavacUtil.removePrefixFromField(fieldNode);
 		ListBuffer<JCStatement> statements;
 		statements = new ListBuffer<JCStatement>();
 		ListBuffer<JCExpressionStatement> step = new ListBuffer<JCExpressionStatement>(); // FOR (_;_;X)
@@ -247,7 +243,7 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 				for (JavacNode nodel : methodnode.down()) {
 	
 			if(nodel.getKind().equals(lombok.core.AST.Kind.LOCAL) ||nodel.getKind().equals(lombok.core.AST.Kind.ARGUMENT) ){
-				notifyannotations = findAnnotations(nodel, Pattern.compile("^(?:ObserverNotify)$", Pattern.CASE_INSENSITIVE));	
+				notifyannotations = JediJavacUtil.findAnnotations(nodel, Pattern.compile("^(?:ObserverNotify)$", Pattern.CASE_INSENSITIVE));	
 				if(notifyannotations.size()>0){
 					if(nodel.getKind().equals(lombok.core.AST.Kind.LOCAL) && !validationisafter){
 						nodel.addError("Only arguments can be notified when notification is set to before");
@@ -278,12 +274,12 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 				if(notifiable.size()==0)
 					methodnode.addError("The method must have atleast one argument or field annotated with @ObserverNotify");
 	}
-	private JCClassDecl creatingInterfaceListener(JavacNode node, List<JCVariableDecl> notifiable, ArrayList<String> customNames,String listenerName, JavacTreeMaker maker,String methodname) {
+	private JCClassDecl creatingInterfaceListener(JavacNode node, List<JCVariableDecl> notifiable, ArrayList<String> customNames,String listenerName, JavacTreeMaker maker,String methodname,String annotationName) {
 		
 		JCClassDecl interf = maker.ClassDef(maker.Modifiers(Flags.INTERFACE|Flags.PUBLIC), node.toName(firstToUpper(listenerName)), List.<JCTypeParameter>nil(),null, List.<JCExpression>nil(), List.<JCTree>nil());
 		
 		//injecting the interface
-		JavacNode interfnode = injectType(node.up().up(), interf);
+		JavacNode interfnode = JediJavacUtil.injectType(node.up().up(), interf,annotationName);
 		JCClassDecl subject = (JCClassDecl)node.up().up().get();
 		JCVariableDecl subjectdeclared = maker.VarDef(maker.Modifiers(0),node.toName("subject") ,maker.Ident(subject.name) , null);
 		if(notifiable.size()>0){
@@ -294,17 +290,17 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 			//for (int i=0;i<map.size();i++) {
 			//	list.add(maker.VarDef(maker.Modifiers(0), interfnode.toName("new"+firstToUpper(map.get(i).name.toString())), map.get(i).vartype, null));
 			//}
-		JCMethodDecl verify = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(0), interfnode.toName(methodname) ,maker.TypeIdent(CTC_VOID),
+		JCMethodDecl verify = JediJavacUtil.recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(0), interfnode.toName(methodname) ,maker.TypeIdent(CTC_VOID),
 				List.<JCTypeParameter>nil(),list.toList(), List.<JCExpression>nil(), null, null), node.up().get(), node.up().getContext());
 		// injecting the method in the interface
 		verify.params=verify.params.prepend(subjectdeclared);
-		injectMethod(interfnode, verify);
+		JediJavacUtil.injectMethod(interfnode, verify,annotationName);
 		}
 	
 		return interf;
 	}
-	private void creatingListenerManagement(JavacNode node, JavacTreeMaker maker, JavacNode fieldNode, Type interf) {
-		Name fieldName = removePrefixFromField(fieldNode);
+	private void creatingListenerManagement(JavacNode node, JavacTreeMaker maker, JavacNode fieldNode, Type interf,String annotationName) {
+		Name fieldName = JediJavacUtil.removePrefixFromField(fieldNode);
 		ListBuffer<JCVariableDecl> args=new ListBuffer<JCVariableDecl>();
 		ListBuffer<JCExpression> params = new ListBuffer<JCExpression>() ;
 		ListBuffer<JCStatement> statements = new ListBuffer<JCStatement>();
@@ -324,9 +320,9 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 				
 				JCBlock body = maker.Block(0, statements.toList());
 				//defining and injecting the add method
-				JCMethodDecl subscribe = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC), node.toName("subscribeTo"+firstToUpper(node.up().getName())) ,maker.TypeIdent(CTC_VOID),
+				JCMethodDecl subscribe = JediJavacUtil.recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC), node.toName("subscribeTo"+firstToUpper(node.up().getName())) ,maker.TypeIdent(CTC_VOID),
 						List.<JCTypeParameter>nil(),args.toList(), List.<JCExpression>nil(), body,null ), node.up().get(), node.getContext());
-				injectMethod(node.up().up(), subscribe);
+				JediJavacUtil.injectMethod(node.up().up(), subscribe,annotationName);
 		//
 		
 		//new statements, but same parameters and arguments.
@@ -342,9 +338,9 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 		
 		JCBlock removeMethodBody = maker.Block(0, statements.toList());
 		//defining and injecting the remove method
-		JCMethodDecl unsubscribe = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC), node.toName("unsubscribeFrom"+firstToUpper(node.up().getName())) ,maker.TypeIdent(CTC_VOID),
+		JCMethodDecl unsubscribe = JediJavacUtil.recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC), node.toName("unsubscribeFrom"+firstToUpper(node.up().getName())) ,maker.TypeIdent(CTC_VOID),
 		List.<JCTypeParameter>nil(),args.toList(), List.<JCExpression>nil(), removeMethodBody,null ), node.up().get(), node.getContext());
-		injectMethod(node.up().up(), unsubscribe);
+		JediJavacUtil.injectMethod(node.up().up(), unsubscribe,annotationName);
 		//
 	}
 	

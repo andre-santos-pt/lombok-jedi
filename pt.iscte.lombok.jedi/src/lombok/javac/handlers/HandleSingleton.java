@@ -23,11 +23,8 @@ package lombok.javac.handlers;
 
 import static lombok.javac.Javac.CTC_BOT;
 import static lombok.javac.Javac.CTC_EQUAL;
-import static lombok.javac.handlers.JavacHandlerUtil.injectField;
-import static lombok.javac.handlers.JavacHandlerUtil.injectMethod;
-import static lombok.javac.handlers.JavacHandlerUtil.recursiveSetGeneratedBy;
-import static lombok.javac.handlers.JavacHandlerUtil.removePrefixFromField;
 import lombok.AccessLevel;
+import lombok.CompositeChildren;
 import lombok.Observable;
 import lombok.Singleton;
 import lombok.core.AST.Kind;
@@ -97,11 +94,9 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 				fieldName="_instance";
 			}
 			JCClassDecl clazz = (JCClassDecl)node.up().get();
-			JavacNode fieldNode = createLocalField(node, maker, clazz,fieldName);
-			createConstructor(node, maker);
-			createGetMethod(node, maker, clazz, fieldNode,methodname);	
-		}else{
-			
+			JavacNode fieldNode = createLocalField(node, maker, clazz,fieldName,Singleton.class.getName());
+			createConstructor(node, maker,Singleton.class.getName());
+			createGetMethod(node, maker, clazz, fieldNode,methodname,Singleton.class.getName());	
 		}
 		
 		
@@ -109,25 +104,25 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 	}
 
 
-	private JavacNode createLocalField(JavacNode node, JavacTreeMaker maker, JCClassDecl clazz, String fieldName) {
+	private JavacNode createLocalField(JavacNode node, JavacTreeMaker maker, JCClassDecl clazz, String fieldName,String annotationName) {
 		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE|Flags.STATIC), node.toName(fieldName),maker.Ident(clazz.name), null);
 		//JCVariableDecl uncleanField = maker.VarDef(maker.Modifiers(Flags.PRIVATE), x.name, cloneType(maker, x.defs, (JCTree)ast, node.getContext()), null);
 		//JCVariableDecl uncleanField = maker.VarDef(maker.Modifiers(Flags.PRIVATE), node.toName("$lombokUnclean"), maker.TypeIdent(Javac.CTC_BOOLEAN), null);
-		JavacNode fieldNode = injectField(node.up(), field);
+		JavacNode fieldNode = JediJavacUtil.injectField(node.up(), field,annotationName);
 		return fieldNode;
 	}
 
 
-	public static void createConstructor(JavacNode node, JavacTreeMaker maker) {
+	public static void createConstructor(JavacNode node, JavacTreeMaker maker,String annotationName) {
 		JCMethodDecl constructor = HandleConstructor.createConstructor(AccessLevel.PACKAGE, List.<JCAnnotation>nil(), node.up(), List.<JavacNode>nil(), null, node);
 		constructor.mods=maker.Modifiers(Flags.PRIVATE);
-		injectMethod(node.up(), constructor);
+		JediJavacUtil.injectMethod(node.up(), constructor,annotationName);
 	}
 
 
-	private void createGetMethod(JavacNode node, JavacTreeMaker maker, JCClassDecl x, JavacNode fieldNode,String methodname) {
+	private void createGetMethod(JavacNode node, JavacTreeMaker maker, JCClassDecl x, JavacNode fieldNode,String methodname,String annotationName) {
 		JCVariableDecl field = (JCVariableDecl)fieldNode.get();
-		Name fieldName = removePrefixFromField(fieldNode);
+		Name fieldName = JediJavacUtil.removePrefixFromField(fieldNode);
 		ListBuffer<JCStatement> statements = new ListBuffer<JCStatement>();
 		JCExpression cond = maker.Binary(CTC_EQUAL, maker.Ident(field.name), maker.Literal(CTC_BOT, null));
 		
@@ -152,9 +147,9 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 		//JCVariableDecl field = (JCVariableDecl) fieldNode.get();
 
 		
-		JCMethodDecl decl = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC|Flags.STATIC|Flags.SYNCHRONIZED), node.toName(methodname) , maker.Ident(x.name),
+		JCMethodDecl decl = JediJavacUtil.recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC|Flags.STATIC|Flags.SYNCHRONIZED), node.toName(methodname) , maker.Ident(x.name),
 				List.<JCTypeParameter>nil(), List.<JCVariableDecl>nil(), List.<JCExpression>nil(), body, null), node.up().get(), node.getContext());
 		
-		injectMethod(node.up(), decl);
+		JediJavacUtil.injectMethod(node.up(), decl,annotationName);
 	}
 }

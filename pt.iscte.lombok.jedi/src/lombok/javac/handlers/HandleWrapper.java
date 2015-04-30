@@ -31,10 +31,6 @@ import static lombok.javac.Javac.CTC_INT;
 import static lombok.javac.Javac.CTC_LONG;
 import static lombok.javac.Javac.CTC_SHORT;
 import static lombok.javac.Javac.CTC_VOID;
-import static lombok.javac.handlers.JavacHandlerUtil.injectField;
-import static lombok.javac.handlers.JavacHandlerUtil.injectMethod;
-import static lombok.javac.handlers.JavacHandlerUtil.recursiveSetGeneratedBy;
-import static lombok.javac.handlers.JavacHandlerUtil.removePrefixFromField;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -49,6 +45,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
 import lombok.AccessLevel;
+import lombok.CompositeChildren;
 import lombok.Singleton;
 import lombok.Wrapper;
 import lombok.core.AnnotationValues;
@@ -146,9 +143,9 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 			fieldName="_instance";
 		}
 		if(!cl.sym.isInterface()){
-			JavacNode fieldNode = createLocalField(node, maker, type,fieldName);
-			handleConstructor(node, maker, type, fieldNode);
-			handleMethods(node.up(), maker, type, fieldNode,true);
+			JavacNode fieldNode = createLocalField(node, maker, type,fieldName,Wrapper.class.getName());
+			handleConstructor(node, maker, type, fieldNode,Wrapper.class.getName());
+			handleMethods(node.up(), maker, type, fieldNode,true,Wrapper.class.getName());
 		}else{
 			node.up().addError("The annotation @Wrapper can not be used on a Interface.");
 		}
@@ -158,18 +155,18 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 	}
 
 	private JavacNode createLocalField(JavacNode node, JavacTreeMaker maker,
-			Type instancetype, String fieldName) {
+			Type instancetype, String fieldName,String annotationName) {
 		JCVariableDecl field = maker.VarDef(
 				maker.Modifiers(Flags.FINAL),
 				node.toName(fieldName),
 				maker.Ident(node.toName(instancetype.toString())), null);
-		JavacNode fieldNode = injectField(node.up(), field);
+		JavacNode fieldNode = JediJavacUtil.injectField(node.up(), field,annotationName);
 		return fieldNode;
 	}
 
 	private void handleConstructor(JavacNode node, JavacTreeMaker maker,
-			Type instancetype, JavacNode fieldNode) {
-		Name fieldName = removePrefixFromField(fieldNode);
+			Type instancetype, JavacNode fieldNode,String annotationName) {
+		Name fieldName = JediJavacUtil.removePrefixFromField(fieldNode);
 		JCMethodDecl constructor = JediJavacUtil.createConstructor(
 				AccessLevel.PACKAGE, List.<JCAnnotation> nil(), node.up(),
 				List.<JavacNode> nil(), null, node);
@@ -184,11 +181,11 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 				List.<JCStatement> of(maker.Exec(assign)));
 		constructor.body = constrbody;
 
-		injectMethod(node.up(), constructor);
+		JediJavacUtil.injectMethod(node.up(), constructor,annotationName);
 	}
 
 	public static void handleMethods(JavacNode node, JavacTreeMaker maker,
-			Type classtype, JavacNode fieldNode, boolean withBody) {
+			Type classtype, JavacNode fieldNode, boolean withBody,String annotationName) {
 		ListBuffer<JCVariableDecl> parameters;
 		ListBuffer<JCExpression> arguments;
 		Type retn;
@@ -216,7 +213,7 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 					}
 					JCBlock body=null;
 					if(withBody){
-						Name fieldName = removePrefixFromField(fieldNode);
+						Name fieldName = JediJavacUtil.removePrefixFromField(fieldNode);
 					ListBuffer<JCStatement> stats = new ListBuffer<JCStatement>();
 					 JCMethodInvocation newCall = maker.Apply(NIL_EXPRESSION,
 					 maker.Select(maker.Ident(fieldName),  member.name),
@@ -231,7 +228,7 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 					}
 					JCMethodDecl method= maker.MethodDef(maker.Modifiers(Flags.PUBLIC),  member.name, returnType, List.<JCTypeParameter>nil(), parameters.toList(), List.<JCExpression>nil(), body, null);
 			
-					injectMethod(node, method);	
+					JediJavacUtil.injectMethod(node, method,annotationName);	
 				}
 				
 			}

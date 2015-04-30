@@ -117,7 +117,7 @@ public class HandleVisitableNode extends JavacAnnotationHandler<VisitableNode> {
 						subtypes.put(ct.toString(), new HashSet<Type>());
 					subtypes.get(ct.toString()).add(type);
 					String visitorType = ct.toString() + "." + ann.visitorTypeName();
-					injectAcceptMethod(typeNode, maker, type, visitorType);
+					injectAcceptMethod(typeNode, maker, type, visitorType,VisitableNode.class.getName());
 				}
 
 			}	
@@ -128,7 +128,7 @@ public class HandleVisitableNode extends JavacAnnotationHandler<VisitableNode> {
 		
 	}
 
-	static void injectAcceptMethod(JavacNode typeNode, JavacTreeMaker maker, Type type, String visitorType) {
+	static void injectAcceptMethod(JavacNode typeNode, JavacTreeMaker maker, Type type, String visitorType,String annotationName) {
 		boolean abstractType = isAbstractType(typeNode);
 		Types types = Types.instance(typeNode.getAst().getContext());
 		JCVariableDecl param = maker.VarDef(maker.Modifiers(Flags.PARAMETER), typeNode.toName("visitor"), JediJavacUtil.chainDotsString(typeNode, visitorType),
@@ -177,7 +177,7 @@ public class HandleVisitableNode extends JavacAnnotationHandler<VisitableNode> {
 		// maker.Type(Javac.createVoidType(maker, CTC_VOID)),
 				maker.TypeIdent(CTC_VOID), List.<JCTypeParameter>nil(), List.of(param), List.<JCExpression>nil(), bodyBlock, null);
 		
-		JediJavacUtil.injectMethod(typeNode, acceptMethod);
+		JediJavacUtil.injectMethod(typeNode, acceptMethod,annotationName);
 	}
 	
 	static boolean isAbstractType(JavacNode typeNode) {

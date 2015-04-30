@@ -31,17 +31,13 @@ import static lombok.javac.Javac.CTC_INT;
 import static lombok.javac.Javac.CTC_LONG;
 import static lombok.javac.Javac.CTC_SHORT;
 import static lombok.javac.Javac.CTC_VOID;
-import static lombok.javac.handlers.JavacHandlerUtil.injectField;
-import static lombok.javac.handlers.JavacHandlerUtil.injectMethod;
-import static lombok.javac.handlers.JavacHandlerUtil.injectType;
-import static lombok.javac.handlers.JavacHandlerUtil.recursiveSetGeneratedBy;
-import static lombok.javac.handlers.JavacHandlerUtil.removePrefixFromField;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
 
 import lombok.AccessLevel;
+import lombok.CompositeChildren;
 import lombok.Decorator;
 import lombok.VisitableType;
 import lombok.core.AnnotationValues;
@@ -130,18 +126,18 @@ public class HandleDecorator extends JavacAnnotationHandler<Decorator> {
 		JCClassDecl annotatedclass = (JCClassDecl) node.up().get();
 		
 		if (annotatedclass.sym.isInterface()) {
-			JavacNode clazznode = createInnerAbstractClass(node, maker,annotatedclass,classname);
+			JavacNode clazznode = createInnerAbstractClass(node, maker,annotatedclass,classname,Decorator.class.getName());
 			
-			JavacNode fieldNode = createLocalFieldOnInnerClass(node, maker, annotatedclass,fieldname, clazznode);
+			JavacNode fieldNode = createLocalFieldOnInnerClass(node, maker, annotatedclass,fieldname, clazznode,Decorator.class.getName());
 			
-			handleConstructor(clazznode, maker, annotatedclass, fieldNode);
-			handleMethods(clazznode, maker, annotatedclass,fieldNode);
+			handleConstructor(clazznode, maker, annotatedclass, fieldNode,Decorator.class.getName());
+			handleMethods(clazznode, maker, annotatedclass,fieldNode,Decorator.class.getName());
 		} else {
 			node.up().addError("Only Interfaces can be annotated with @Decorator");
 		}
 	}
 	
-	private JavacNode createLocalFieldOnInnerClass(JavacNode node, JavacTreeMaker maker, JCClassDecl instancetype,String fieldname, JavacNode clazznode) {
+	private JavacNode createLocalFieldOnInnerClass(JavacNode node, JavacTreeMaker maker, JCClassDecl instancetype,String fieldname, JavacNode clazznode,String annotationName) {
 		
 				JCVariableDecl field;
 				if(fieldname.equals("")){
@@ -149,29 +145,29 @@ public class HandleDecorator extends JavacAnnotationHandler<Decorator> {
 		}else{
 			 field = maker.VarDef(maker.Modifiers(Flags.PRIVATE | Flags.FINAL), node.toName(fieldname), maker.Ident(instancetype.name), null);
 		}
-		JavacNode fieldNode = injectField(clazznode, field);
+		JavacNode fieldNode = JediJavacUtil.injectField(clazznode, field,annotationName);
 		return fieldNode;
 	}
 	
-	private JavacNode createInnerAbstractClass(JavacNode node, JavacTreeMaker maker,JCClassDecl clazz, String classname) {
+	private JavacNode createInnerAbstractClass(JavacNode node, JavacTreeMaker maker,JCClassDecl clazz, String classname,String annotationName) {
 		JavacNode clazznode;
 		JCClassDecl abst;
 		if(classname.equals("")){
 			abst = maker.ClassDef(maker.Modifiers(Flags.ABSTRACT | Flags.PUBLIC), node.toName(maker.Ident(clazz.name).toString()+"Decorator"), List.<JCTypeParameter>nil(), null, List.<JCExpression>nil(), List.<JCTree>nil());
 			abst.implementing=List.<JCTree.JCExpression>of(maker.Ident(clazz.name));
-		clazznode = injectType(node.up(), abst);	
+		clazznode = JediJavacUtil.injectType(node.up(), abst,annotationName);	
 		}else{
 			abst = maker.ClassDef(maker.Modifiers(Flags.ABSTRACT | Flags.PUBLIC), node.toName(classname), List.<JCTypeParameter>nil(), null, List.<JCExpression>nil(), List.<JCTree>nil());
 			abst.implementing=List.<JCTree.JCExpression>of(maker.Ident(clazz.name));
-		clazznode = injectType(node.up(), abst);
+		clazznode = JediJavacUtil.injectType(node.up(), abst,annotationName);
 		}
 		
 	
 		return clazznode;
 	}
 	
-	private void handleConstructor(JavacNode node, JavacTreeMaker maker, JCClassDecl instancetype, JavacNode fieldNode) {
-		Name fieldName = removePrefixFromField(fieldNode);
+	private void handleConstructor(JavacNode node, JavacTreeMaker maker, JCClassDecl instancetype, JavacNode fieldNode,String annotationName) {
+		Name fieldName = JediJavacUtil.removePrefixFromField(fieldNode);
 		JCMethodDecl constructor = JediJavacUtil.createConstructor(AccessLevel.PACKAGE, List.<JCAnnotation>nil(), node, List.<JavacNode>nil(), null, node);
 		constructor.mods = maker.Modifiers(Flags.PUBLIC);
 		Name argname = node.toName(instancetype.name.toString().toLowerCase());
@@ -180,11 +176,11 @@ public class HandleDecorator extends JavacAnnotationHandler<Decorator> {
 		JCAssign assign = maker.Assign(maker.Ident(fieldName), maker.Ident(argname));
 		JCBlock constrbody = maker.Block(0, List.<JCStatement>of(maker.Exec(assign)));
 		constructor.body = constrbody;
-		injectMethod(node, constructor);
+		JediJavacUtil.injectMethod(node, constructor,annotationName);
 	}
 	
-	private void handleMethods(JavacNode clazznode, JavacTreeMaker maker, JCClassDecl clazz, JavacNode fieldNode) {
-		Name fieldName = removePrefixFromField(fieldNode);
+	private void handleMethods(JavacNode clazznode, JavacTreeMaker maker, JCClassDecl clazz, JavacNode fieldNode,String annotationName) {
+		Name fieldName = JediJavacUtil.removePrefixFromField(fieldNode);
 		Types types = Types.instance(clazznode.getAst().getContext());
 		
 		Type type = clazz.sym.type;
@@ -193,7 +189,7 @@ public class HandleDecorator extends JavacAnnotationHandler<Decorator> {
 		int i=1;
 		for (Type s : closure) {
 			if(i<closure.size()){
-					HandleWrapper.handleMethods(clazznode, maker, s, fieldNode,true);
+					HandleWrapper.handleMethods(clazznode, maker, s, fieldNode,true,annotationName);
 			}
 		
 			i++;

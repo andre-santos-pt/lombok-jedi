@@ -7,7 +7,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 /**
  * 
- * Used to give extra behavior to the class annotated with it, to support the implementation of the Flyweight Pattern.
+ * This annotation is used in conjunction with &#64;FlyweightObject to support
+ * the implementation of the Flyweight Pattern.
  * This annotation also turns the object into a value object, by overriding the equals and hashcode method.
  * The class annotated with it, will generate the following:
  *<p><ul>
@@ -23,6 +24,10 @@ import java.lang.annotation.Target;
  * <li>Need to contain at least one  &#64;FlyweightObject
  * </ul><p>
  *  
+ *Used with:
+ * <p><ul>
+ * <li>&#64;FlyweightObject
+ * </ul><p>
  */
 
 @Target(ElementType.TYPE)

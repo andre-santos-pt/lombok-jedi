@@ -73,7 +73,7 @@ public class HandleVisitableChildren extends JavacAnnotationHandler<VisitableChi
 			}
 		}
 		if(isVisitableNode){
-			metodo(typeNode, field);
+			checkFieldCompatibility(typeNode, field);
 				
 					
 			String className = parentClass.sym.type.toString();
@@ -89,7 +89,7 @@ public class HandleVisitableChildren extends JavacAnnotationHandler<VisitableChi
 		}
 		
 	}
-	private void metodo(JavacNode fieldNode, JCVariableDecl field){
+	private void checkFieldCompatibility(JavacNode fieldNode, JCVariableDecl field){
 		Types types = Types.instance(fieldNode.getAst().getContext());
 		List<Type> parameterTypes = field.sym.type.getTypeArguments();
 		Type type;	
@@ -130,43 +130,7 @@ public class HandleVisitableChildren extends JavacAnnotationHandler<VisitableChi
 				}
 			
 	}
-	private void checkFieldCompatibility(JavacNode typeNode,
-			JCVariableDecl field) {
-		Types types = Types.instance(typeNode.getAst().getContext());
-		List<Type> closure = types.closure(field.sym.type);
-		if (!HandleCompositeChildren.iscollection(closure)) {
-//	if(!field.sym.type.tsym.toString().equals("java.util.List")){
-		if(field.sym.type.getTypeArguments().size()>0){
-			typeNode.addError("The field's type must be derived from collection");
-			}else{
-				
-				
-				ClassType ct = (ClassType) field.sym.type;
-				VisitableNode ann = ct.tsym.getAnnotation(VisitableNode.class);
-				if (ann == null) {
-					typeNode.addError("The type of the field must be annotated with @" + VisitableNode.class.getSimpleName() );
-				}		
-			}
-			
-		}else{
-			if(field.sym.type.getTypeArguments().size()>0){
-				Type collectionType = field.sym.type.getTypeArguments().get(0);
-				ClassType ct = (ClassType) collectionType;
-				List<Type> closure2 = types.closure(ct);
-				VisitableNode annVisitType = null;
-				for(Type st : closure2) {
-					annVisitType = st.tsym.getAnnotation(VisitableNode.class);
-					if(annVisitType != null)
-						break;
-				}
-				
-				if (annVisitType == null) {
-					typeNode.addError("The type argument of this Collection must be annotated with  @ " + VisitableNode.class.getSimpleName());
-				}		
-			}
-			
-		}
-	}
+
 	
 	static List<JCVariableDecl> getChildrenVariables(String className) {
 		return map.containsKey(className) ? map.get(className) : Collections.<JCVariableDecl>emptyList();
