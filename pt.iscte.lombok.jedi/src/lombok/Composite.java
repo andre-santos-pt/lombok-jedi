@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 /**
  * This annotation is used in conjunction with &#64;CompositeComponent,
  * <p>&#64;CompositeChildren and &#64;CompositeLeaf to support 
- * <p>the implementation of the Composite Pattern.
+ * <p>the implementation of the Composite Pattern.<p>
  * Used to mark the composite actor of the Composite Pattern. Must have a field annotated with &#64;CompositeChildren
  * 
  * 

@@ -344,7 +344,12 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 		if (list.size() == parameterTypes.size()) {
 			for (int i = 0; i < list.size(); i++) {
 				String k = parameterTypes.get(i).getType().toString();
+				if(k.contains("."))
+					k=removePrefix(k);
 				String p = list.get(i).getType().toString();
+				if(p.contains("."))
+					p=removePrefix(p);
+				
 				if (!k.equals(p)) {
 					return false;
 				}
@@ -352,6 +357,20 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 			return true;
 		}
 		return false;
+	}
+
+	private static String removePrefix(String word) {
+		String clean = "";
+		for(int i=word.length()-1;i>=0;i--){
+			if(word.charAt(i)=='.'){
+				i++;
+				for(int j=i;j<word.length();j++){
+				clean=clean+word.charAt(j);
+				}
+				break;
+			}
+		}
+		return clean;
 	}
 
 

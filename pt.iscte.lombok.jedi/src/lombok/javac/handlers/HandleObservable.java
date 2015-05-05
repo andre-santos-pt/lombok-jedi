@@ -21,6 +21,7 @@ import javax.lang.model.element.ExecutableElement;
 
 import lombok.CompositeChildren;
 import lombok.Observable;
+import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;
@@ -72,56 +73,96 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 		Object obj = annotation.getActualExpression("type");
 		String listenermethod=annotationInstance.operation();
 		String listenername=annotationInstance.typeName();
-		int operation=0;
+		String fieldName=annotationInstance.fieldName();
+		boolean interfDefined=false;
+		boolean customInfetfDefined=false;
 		notificationValitations( maker, validationisafter, node.up(),notifiable,customNotifiableNames);
-		if(obj!=null)
-			if(!obj.equals(void.class)){
-				operation=operation+1;
+		if(obj!=null && !obj.equals(void.class) ){
+			customInfetfDefined=true;
+			
 			}
-		
-		if(listenername.equals("") || listenername==null){
-			listenername=listenername+firstToUpper(node.up().getName())+"Listener";
-		}else{
-			operation=operation+2;
+			if(fieldName==null || fieldName.equals("")){
+			fieldName=fieldName+firstToUpper(node.up().getName())+"Listeners";
+			
 		}
+		if(listenername==null||listenername.equals("")){
+			listenername=listenername+firstToUpper(node.up().getName())+"Listener";
+			if(!customInfetfDefined){
+				interfDefined=true;
+			}
+		}else{
+			interfDefined=true;
+		}
+		
 		JCMethodDecl annotatedmethod=(JCMethodDecl)node.up().get();
 		JavacNode fieldNode;
-		switch(operation){
-		case 1:
-			Symbol method=findMethod(node, notifiable, maker, obj);
-			JCFieldAccess field = (JCFieldAccess) obj;
-			Type type = field.selected.type;
-			 fieldNode = creatinglocalfield(node, maker,type,annotationName);
-			creatingListenerManagement(node, maker, fieldNode, type,annotationName);
-			if(!listenermethod.equals("")&&listenermethod!=null){
-				notifyingObservers(node, notifiable, maker, validationisafter, annotatedmethod, fieldNode,listenermethod,false);	
+		if(interfDefined!=customInfetfDefined){
+			if(interfDefined){
+				if(listenermethod.equals("")||listenermethod==null){
+					listenermethod="notify";
+				}
+				JCClassDecl interf = creatingInterfaceListener(node, notifiable.toList(),customNotifiableNames,listenername, maker,listenermethod,annotationName);
+				fieldNode = creatingFieldAndMethods(node, maker,
+						annotationName, interf.name.toString(),fieldName,false);
+				notifyingObservers(node, notifiable, maker, validationisafter, annotatedmethod, fieldNode,listenermethod,true);	
 			}else{
-				notifyingObservers(node, notifiable, maker, validationisafter, annotatedmethod, fieldNode,method.name.toString(),false);	
-			}
-			break;
-		case 2:
-			if(listenermethod.equals("")||listenermethod==null){
-				listenermethod="notify";
-			}
-			
-			JCClassDecl interf = creatingInterfaceListener(node, notifiable.toList(),customNotifiableNames,listenername, maker,listenermethod,annotationName);
-			fieldNode = creatinglocalfield(node, maker,interf.type,annotationName);
-			creatingListenerManagement(node, maker, fieldNode, interf.type,annotationName);
-			notifyingObservers(node, notifiable, maker, validationisafter, annotatedmethod, fieldNode,listenermethod,true);	
-			break;
-		case 3: node.addError("Either you set a Listener, or choose a name for the creation of one.");
-		break;
+				Symbol method=findMethod(node, notifiable, maker, obj);
+				JCFieldAccess field = (JCFieldAccess) obj;
+				Type type = field.selected.type;
+				fieldNode = creatingFieldAndMethods(node, maker,annotationName, type.toString(),
+						fieldName,true);
+				
+				if(!listenermethod.equals("")&&listenermethod!=null){
+					notifyingObservers(node, notifiable, maker, validationisafter, annotatedmethod, fieldNode,listenermethod,false);	
+				}else{
+					if(method!=null)
+					notifyingObservers(node, notifiable, maker, validationisafter, annotatedmethod, fieldNode,method.name.toString(),false);	
+				}
+		}
+		}else{
+			node.addError("Either you set a Listener, or choose a name for the creation of one.");
 		}
 		
-		
-		
-		
-		
 	}
+	private JavacNode creatingFieldAndMethods(JavacNode node,
+			JavacTreeMaker maker, String annotationName, String interfName,String fieldName, boolean methodsSkip) {
+		JavacNode fieldNode = checkCompatibility(node, interfName, fieldName,methodsSkip);
+		if(fieldNode==null){
+			fieldNode = creatinglocalfield(node, maker,interfName,annotationName,fieldName);
+			creatingListenerManagement(node, maker, fieldNode, interfName,annotationName);	
+		}
+		return fieldNode;
+	}
+	private JavacNode checkCompatibility(JavacNode node, String interfName,
+			String fieldName, boolean methodsSkip) {
+		
+		JavacNode fieldNode=null;
+		if(methodsSkip)
+		for (JavacNode subnode : node.up().up().down()) {
+			if(subnode.getKind().equals(Kind.FIELD)){
+				if(subnode.getName().equals(fieldName)){
+					
+					JCVariableDecl field=(JCVariableDecl)subnode.get();
+					if(field.vartype.toString().contains(List.class.getSimpleName())){
+							 if(field.vartype.toString().contains("<"+interfName+">")){
+								
+								 fieldNode=subnode;
+								
+							 }else{
+								 node.addError("The field "+subnode.getName()+" cannot store interfaces of type "+interfName);
+							 }
+						}else{
+							 node.addError("Please define a custom name difrent from "+fieldName);
+						}
+				}
+			}
+		}
+		return fieldNode;
+	}
+
 	private Symbol findMethod(JavacNode node, ListBuffer<JCVariableDecl> notifiable,
 			JavacTreeMaker maker, Object obj) {
-		Symbol method = null;
-		int i=0;
+		ArrayList<Symbol> method = new ArrayList<Symbol>();
 		if(obj!=null)
 		if(!obj.equals(void.class)){
 			JCFieldAccess field = (JCFieldAccess) obj;
@@ -140,18 +181,20 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 						
 						HandleWrapper.drillIntoMethod(node, maker, interfacetype, member, exElem, parameters, arguments);
 						if(HandleWrapper.parametersEquals( parameters.toList(), notifiable.toList()))
-						method= member;
-						i++;
+						method.add(member);
 					}
 				}
 				
 			}
 			
 		}
-		if(i>1)
-			node.addError("Multiple possible methods found.");
+		if(method.size()>1){
+			node.addError("Multiple possible methods found."+method.toString());
+			return null;
+		}
+			
 		
-		if(method==null){
+		if(method.size()==0){
 			String types = "";
 			int pos=0 ;
 		for (JCVariableDecl var : notifiable) {
@@ -160,14 +203,16 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 				types=types+",";
 		}
 			node.addError("The interface contains no method with the argument types ("+types+")");
+			return null;
 		}
-		return method;
+		return method.get(0);
 	}
-	private JavacNode creatinglocalfield(JavacNode methodNode, JavacTreeMaker maker, Type interftype,String annotationName) {
-		JCExpression Arraytype=maker.TypeApply(handleArrayType(methodNode, maker, java.util.ArrayList.class),List.<JCExpression>of( maker.Ident(methodNode.toName(interftype.toString())) ));
-		JCExpression listtype=maker.TypeApply(handleArrayType(methodNode, maker, java.util.List.class),List.<JCExpression>of( maker.Ident(methodNode.toName(interftype.toString())) ));
+	private JavacNode creatinglocalfield(JavacNode methodNode, JavacTreeMaker maker, String interftype,String annotationName, String fieldName) {
+		
+		JCExpression Arraytype=maker.TypeApply(handleArrayType(methodNode, maker, java.util.ArrayList.class),List.<JCExpression>of( maker.Ident(methodNode.toName(interftype)) ));
+		JCExpression listtype=maker.TypeApply(handleArrayType(methodNode, maker, java.util.List.class),List.<JCExpression>of( maker.Ident(methodNode.toName(interftype)) ));
 		JCNewClass fieldinit = maker.NewClass(null, List.<JCExpression>nil(), Arraytype, NIL_EXPRESSION, null);
-		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE|Flags.FINAL), methodNode.toName(methodNode.up().getName()+"Listeners"),listtype,fieldinit);
+		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE|Flags.FINAL), methodNode.toName(fieldName),listtype,fieldinit);
 		JavacNode fieldNode = JediJavacUtil.injectField(methodNode.up().up(), field,annotationName);
 		return fieldNode;
 	}
@@ -189,7 +234,7 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 
 
 	private void notifyingObservers(JavacNode methodNode, ListBuffer<JCVariableDecl> notifiable, JavacTreeMaker maker, boolean validationisafter, JCMethodDecl annotatedmethod, JavacNode fieldNode,String methodname,boolean argumentThis) {
-		Name fieldName = JediJavacUtil.removePrefixFromField(fieldNode);
+		Name fieldName = fieldNode.toName(fieldNode.getName());
 		ListBuffer<JCStatement> statements;
 		statements = new ListBuffer<JCStatement>();
 		ListBuffer<JCExpressionStatement> step = new ListBuffer<JCExpressionStatement>(); // FOR (_;_;X)
@@ -299,7 +344,7 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 	
 		return interf;
 	}
-	private void creatingListenerManagement(JavacNode node, JavacTreeMaker maker, JavacNode fieldNode, Type interf,String annotationName) {
+	private void creatingListenerManagement(JavacNode node, JavacTreeMaker maker, JavacNode fieldNode, String interf,String annotationName) {
 		Name fieldName = JediJavacUtil.removePrefixFromField(fieldNode);
 		ListBuffer<JCVariableDecl> args=new ListBuffer<JCVariableDecl>();
 		ListBuffer<JCExpression> params = new ListBuffer<JCExpression>() ;
@@ -310,7 +355,7 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 		
 		//the argument from the method addMethodListener()
 				Name argname=node.toName("listener");
-				args.add(maker.VarDef(maker.Modifiers(0),argname , maker.Ident(node.toName(interf.toString())), null));
+				args.add(maker.VarDef(maker.Modifiers(0),argname , maker.Ident(node.toName(interf)), null));
 				params.add(maker.Ident(argname));
 				//
 				// calling the method .add() from hashset
@@ -320,7 +365,7 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 				
 				JCBlock body = maker.Block(0, statements.toList());
 				//defining and injecting the add method
-				JCMethodDecl subscribe = JediJavacUtil.recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC), node.toName("subscribeTo"+firstToUpper(node.up().getName())) ,maker.TypeIdent(CTC_VOID),
+				JCMethodDecl subscribe = JediJavacUtil.recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC), node.toName("add"+firstToUpper(interf)) ,maker.TypeIdent(CTC_VOID),
 						List.<JCTypeParameter>nil(),args.toList(), List.<JCExpression>nil(), body,null ), node.up().get(), node.getContext());
 				JediJavacUtil.injectMethod(node.up().up(), subscribe,annotationName);
 		//
@@ -331,14 +376,14 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 		params= new ListBuffer<JCExpression>();
 		
 		// calling the method .remove() from hashset
-		args.add(maker.VarDef(maker.Modifiers(0),argname , maker.Ident(node.toName(interf.toString())), null));
+		args.add(maker.VarDef(maker.Modifiers(0),argname , maker.Ident(node.toName(interf)), null));
 		params.add(maker.Ident(argname));
 		JCMethodInvocation fieldmethodcallremove = maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(fieldName), node.up().toName("remove")), params.toList());
 		statements.add(maker.Exec(fieldmethodcallremove)); //turns the .remove call into a statement for the body
 		
 		JCBlock removeMethodBody = maker.Block(0, statements.toList());
 		//defining and injecting the remove method
-		JCMethodDecl unsubscribe = JediJavacUtil.recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC), node.toName("unsubscribeFrom"+firstToUpper(node.up().getName())) ,maker.TypeIdent(CTC_VOID),
+		JCMethodDecl unsubscribe = JediJavacUtil.recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC), node.toName("remove"+firstToUpper(interf)) ,maker.TypeIdent(CTC_VOID),
 		List.<JCTypeParameter>nil(),args.toList(), List.<JCExpression>nil(), removeMethodBody,null ), node.up().get(), node.getContext());
 		JediJavacUtil.injectMethod(node.up().up(), unsubscribe,annotationName);
 		//
