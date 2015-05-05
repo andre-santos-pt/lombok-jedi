@@ -131,7 +131,7 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 	public void handle(AnnotationValues<Wrapper> annotation, JCAnnotation ast,
 			JavacNode node) {
 		JavacTreeMaker maker = node.up().getTreeMaker();
-		Object obj = annotation.getActualExpression("value");
+		Object obj = annotation.getActualExpression("classType");
 
 		JCFieldAccess field = (JCFieldAccess) obj;
 		Type type = field.selected.type;
@@ -195,41 +195,45 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 
 			if (member.isConstructor())
 				continue;
-			ExecutableElement exElem = (ExecutableElement) member;
-			if (member.getKind().equals(ElementKind.METHOD) && exElem.getModifiers().contains(javax.lang.model.element.Modifier.PUBLIC)) {
-				useReturn = exElem.getReturnType().getKind() != TypeKind.VOID;
-				retn = (Type) exElem.getReturnType();
-				parameters = new ListBuffer<JCVariableDecl>();
-				arguments = new ListBuffer<JCExpression>();
-				drillIntoMethod(node,maker,classtype,member,exElem,parameters,arguments);
-				
-				if(!methodManuallyExists( member.name.toString(),parameters.toList(),node, maker)){
-					JCExpression returnType=null;
-					try {
-						returnType = JavacResolution.typeToJCTree((Type) retn, node.getAst(), true);
-					} catch (TypeNotConvertibleException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					JCBlock body=null;
-					if(withBody){
-						Name fieldName = JediJavacUtil.removePrefixFromField(fieldNode);
-					ListBuffer<JCStatement> stats = new ListBuffer<JCStatement>();
-					 JCMethodInvocation newCall = maker.Apply(NIL_EXPRESSION,
-					 maker.Select(maker.Ident(fieldName),  member.name),
-					arguments.toList());
-					 if(useReturn){
-						 stats.add(maker.Return(newCall));
-					 }else{
-						 stats.add(maker.Exec(newCall));	 
-					 }
-					
-					body = maker.Block(0, stats.toList());
-					}
-					JCMethodDecl method= maker.MethodDef(maker.Modifiers(Flags.PUBLIC),  member.name, returnType, List.<JCTypeParameter>nil(), parameters.toList(), List.<JCExpression>nil(), body, null);
 			
-					JediJavacUtil.injectMethod(node, method,annotationName);	
+			if (member.getKind().equals(ElementKind.METHOD)) {
+				ExecutableElement exElem = (ExecutableElement) member;
+				if(exElem.getModifiers().contains(javax.lang.model.element.Modifier.PUBLIC)){
+					useReturn = exElem.getReturnType().getKind() != TypeKind.VOID;
+					retn = (Type) exElem.getReturnType();
+					parameters = new ListBuffer<JCVariableDecl>();
+					arguments = new ListBuffer<JCExpression>();
+					drillIntoMethod(node,maker,classtype,member,exElem,parameters,arguments);
+					
+					if(!methodManuallyExists( member.name.toString(),parameters.toList(),node, maker)){
+						JCExpression returnType=null;
+						try {
+							returnType = JavacResolution.typeToJCTree((Type) retn, node.getAst(), true);
+						} catch (TypeNotConvertibleException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						JCBlock body=null;
+						if(withBody){
+							Name fieldName = JediJavacUtil.removePrefixFromField(fieldNode);
+						ListBuffer<JCStatement> stats = new ListBuffer<JCStatement>();
+						 JCMethodInvocation newCall = maker.Apply(NIL_EXPRESSION,
+						 maker.Select(maker.Ident(fieldName),  member.name),
+						arguments.toList());
+						 if(useReturn){
+							 stats.add(maker.Return(newCall));
+						 }else{
+							 stats.add(maker.Exec(newCall));	 
+						 }
+						
+						body = maker.Block(0, stats.toList());
+						}
+						JCMethodDecl method= maker.MethodDef(maker.Modifiers(Flags.PUBLIC),  member.name, returnType, List.<JCTypeParameter>nil(), parameters.toList(), List.<JCExpression>nil(), body, null);
+				
+						JediJavacUtil.injectMethod(node, method,annotationName);	
+					}	
 				}
+				
 				
 			}
 		}

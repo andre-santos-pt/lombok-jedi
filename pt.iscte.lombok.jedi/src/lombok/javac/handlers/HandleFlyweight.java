@@ -118,11 +118,11 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 			case 0:
 				body = defineSecondaryFactory(node, maker,flyweightIntrinsic,annotationName);
 				verifywiththis = JediJavacUtil.recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC|Flags.STATIC), node.toName("getInstance") ,maker.Ident(((JCClassDecl)node.up().get()).name),
-						List.<JCTypeParameter>nil(),flyweightIntrinsic.toList(), List.<JCExpression>nil(), body, null), node.up().get(), node.up().getContext());
+						List.<JCTypeParameter>nil(),flyweightIntrinsic.toList().reverse(), List.<JCExpression>nil(), body, null), node.up().get(), node.up().getContext());
 				JediJavacUtil.injectMethod(node.up(), verifywiththis,annotationName);
 			break;
 			case 1:
-				createField(node, maker, flyweightIntrinsic,annotationName);
+				createFieldMapOfMaps(node, maker, flyweightIntrinsic,annotationName);
 				createConstructor(node,maker,flyweightIntrinsic,annotationName);
 				ListBuffer<JCStatement> statements= new ListBuffer<JCStatement>();
 
@@ -133,7 +133,7 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 				body=maker.Block(0, statements.toList());
 					
 				verifywiththis = JediJavacUtil.recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC|Flags.STATIC), node.toName("getInstance") ,maker.Ident(((JCClassDecl)node.up().get()).name),
-				List.<JCTypeParameter>nil(),flyweightIntrinsic.toList(), List.<JCExpression>nil(), body, null), node.up().get(), node.up().getContext());
+				List.<JCTypeParameter>nil(),flyweightIntrinsic.toList().reverse(), List.<JCExpression>nil(), body, null), node.up().get(), node.up().getContext());
 				JediJavacUtil.injectMethod(node.up(), verifywiththis,annotationName);	
 			break;
 			default:
@@ -148,14 +148,14 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 		//new HandleFieldDefaults().generateFieldDefaultsForType(node.up(), node, AccessLevel.PRIVATE, true, true);
 		
 		// TODO move this to the end OR move it to the top in eclipse.
-		new HandleConstructor().generateAllArgsConstructor(node.up(), AccessLevel.PRIVATE, "", SkipIfConstructorExists.NO, node);
+		//new HandleConstructor().generateAllArgsConstructor(node.up(), AccessLevel.PRIVATE, "", SkipIfConstructorExists.NO, node);
 		new HandleGetter().generateGetterForType(node.up(), node, AccessLevel.PUBLIC, true);
 		new HandleEqualsAndHashCode().generateEqualsAndHashCodeForType(node.up(), node);
 		new HandleToString().generateToStringForType(node.up(), node);
 	}
 
 
-	private void createField(JavacNode node, JavacTreeMaker maker, ListBuffer<JCVariableDecl> flyweightIntrinsic,String annotationName) {
+	private void createFieldMapOfMaps(JavacNode node, JavacTreeMaker maker, ListBuffer<JCVariableDecl> flyweightIntrinsic,String annotationName) {
 		JCExpression hashmap=definemap(flyweightIntrinsic.toList(),flyweightIntrinsic.size()-1,node,maker,true);
 		
 		JCNewClass fieldinit = maker.NewClass(null, List.<JCExpression>nil(), hashmap, NIL_EXPRESSION, null);
@@ -167,21 +167,24 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 
 
 	private JCBlock defineSecondaryFactory(JavacNode node, JavacTreeMaker maker, ListBuffer<JCVariableDecl> flyobjects,String annotationName) {
-		ListBuffer<JCExpression> args = new ListBuffer<JCExpression>(); 
-		ListBuffer<JCStatement> statements= new ListBuffer<JCStatement>();
-		args.add(maker.Ident(((JCClassDecl) node.up().get()).name));
-		args.add(maker.Ident(((JCClassDecl) node.up().get()).name));
-		JCExpression hashfield= maker.TypeApply(handleArrayType(node, maker, java.util.HashMap.class),args.toList());
 		
-		JCNewClass fieldinit = maker.NewClass(null, List.<JCExpression>nil(), hashfield, NIL_EXPRESSION, null);
-		//defining the field 
-		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE|Flags.FINAL|Flags.STATIC), node.toName("flyweights"),hashfield,fieldinit);
-		//injecting the field
-		JavacNode fieldNode = JediJavacUtil.injectField(node.up(), field,annotationName);
 		
+		createFieldofMap(node, maker, annotationName);
+		createConstructor(node,maker,flyobjects,annotationName);
 		
 		//JCExpression getmapvalue = callingsubmap(node,maker,flyobjects,maker.Ident(node.toName("flyweights")),flyobjects.size()-1,flyobjects.size(),null);
+		ListBuffer<JCStatement> statements = creatingFactory(node, maker,
+				flyobjects);
+		return maker.Block(0, statements.toList());
 		
+			
+	}
+
+
+	private ListBuffer<JCStatement> creatingFactory(JavacNode node,
+			JavacTreeMaker maker, ListBuffer<JCVariableDecl> flyobjects) {
+		ListBuffer<JCExpression> args = new ListBuffer<JCExpression>(); 
+		ListBuffer<JCStatement> statements= new ListBuffer<JCStatement>();
 		args = new ListBuffer<JCExpression>(); 
 		for (JCVariableDecl vars : flyobjects) {
 			args=args.prepend(maker.Ident(vars.name));
@@ -203,9 +206,22 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 		JCExpression getcall=maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(node.toName("flyweights")) ,node.toName("get")),List.<JCExpression>of(maker.Ident(local.name)));
 		JCStatement elsepart = maker.Return(getcall);
 		statements.add(maker.If(cond, then, elsepart));
-		return maker.Block(0, statements.toList());
+		return statements;
+	}
+
+
+	private void createFieldofMap(JavacNode node, JavacTreeMaker maker,
+			String annotationName) {
+		ListBuffer<JCExpression> args = new ListBuffer<JCExpression>(); 
+		args.add(maker.Ident(((JCClassDecl) node.up().get()).name));
+		args.add(maker.Ident(((JCClassDecl) node.up().get()).name));
+		JCExpression hashfield= maker.TypeApply(handleArrayType(node, maker, java.util.HashMap.class),args.toList());
 		
-			
+		JCNewClass fieldinit = maker.NewClass(null, List.<JCExpression>nil(), hashfield, NIL_EXPRESSION, null);
+		//defining the field 
+		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE|Flags.FINAL|Flags.STATIC), node.toName("flyweights"),hashfield,fieldinit);
+		//injecting the field
+		JavacNode fieldNode = JediJavacUtil.injectField(node.up(), field,annotationName);
 	}
 
 
@@ -214,15 +230,21 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 		constructor.mods=maker.Modifiers(Flags.PRIVATE);
 		ListBuffer<JCVariableDecl> params= new ListBuffer<JCVariableDecl> ();
 		ListBuffer<JCStatement> body= new ListBuffer<JCStatement> ();
-		int i=0;
-		for (JCVariableDecl var : flyweightIntrinsic) {
-			
-			JCVariableDecl temp=maker.VarDef(maker.Modifiers(0), node.toName("param_"+var.name), var.vartype, null);
-			params=params.prepend(temp);
-			JCAssign assign= maker.Assign(maker.Ident(var.name), maker.Ident(node.toName("param_"+var.name)));
-			body.add(maker.Exec(assign));
-			i++;
+		List<JCAnnotation> notifyannotations;
+		JCVariableDecl var;
+		for (JavacNode children : node.up().down()) {
+			if(children.getKind().equals(lombok.core.AST.Kind.FIELD) ){
+				notifyannotations = JediJavacUtil.findAnnotations(children, Pattern.compile("^(?:FlyweightObject)$", Pattern.CASE_INSENSITIVE));	
+				if(notifyannotations.size()>0){
+					var =(JCVariableDecl)children.get();
+					JCVariableDecl temp=maker.VarDef(maker.Modifiers(0), node.toName("param_"+var.name), var.vartype, null);
+					params=params.append(temp);
+					JCAssign assign= maker.Assign(maker.Ident(var.name), maker.Ident(node.toName("param_"+var.name)));
+					body.add(maker.Exec(assign));
+				}
+			}	
 		}
+	
 		constructor.params=params.toList();
 		
 		JCBlock bodblock=maker.Block(0, body.toList());

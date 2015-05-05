@@ -25,7 +25,7 @@ public @interface Wrapper {
 	/**
 	 *the class that is going to be wrapped.
 	 */
-	Class<?> value();
+	Class<?> classType();
 	/**
 	 *custom name of the interface's instance. The default name is "_instance"
 	 */
