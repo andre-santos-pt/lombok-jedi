@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2015 The Project Lombok Authors.
+ * Copyright 2009-2015 The Project Lombok Authors.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -8,13 +8,13 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  * 
- * The above copyright notice and this permission notice shall be included in
+ * The above Copyrightice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * AUTHORS OR CopyrightDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
@@ -102,7 +102,25 @@ public class JediJavacUtil {
 	private JediJavacUtil() {
 		//Prevent instantiation
 	}
-	
+	public static boolean parametersEquals(
+			 List<JCVariableDecl> parameterTypes, List<JCVariableDecl> list) {
+		if (list.size() == parameterTypes.size()) {
+			for (int i = 0; i < list.size(); i++) {
+				String k = parameterTypes.get(i).getType().toString();
+				if(k.contains("."))
+					k=removePrefixFromString(k);
+				String p = list.get(i).getType().toString();
+				if(p.contains("."))
+					p=removePrefixFromString(p);
+				
+				if (!k.equals(p)) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return false;
+	}
 	private static class MarkingScanner extends TreeScanner {
 		private final JCTree source;
 		private final Context context;
@@ -118,8 +136,22 @@ public class JediJavacUtil {
 			super.scan(tree);
 		}
 	}
-	
-	
+
+	static String firstToUpper(String word) {
+		String first="";
+		String rest="";
+		for(int i =0;i<word.length();i++){
+			if(i==0){
+				first=first+word.charAt(i);
+				first=first.toUpperCase();
+			}else{
+				rest=rest+word.charAt(i);;
+			}
+		}
+		
+		
+		return first+""+rest;
+	}
 	public static JCMethodDecl createConstructor(AccessLevel level, List<JCAnnotation> onConstructor, JavacNode typeNode, List<JavacNode> fields, Boolean suppressConstructorProperties, JavacNode source) {
 		JavacTreeMaker maker = typeNode.getTreeMaker();
 		
@@ -561,7 +593,22 @@ public class JediJavacUtil {
 	public static boolean isBoolean(JCExpression varType) {
 		return varType != null && varType.toString().equals("boolean");
 	}
-	
+	static String removePrefixFromString(String word) {
+		if(!word.contains(".")){
+		return word;	
+		}
+		String clean = "";
+		for(int i=word.length()-1;i>=0;i--){
+			if(word.charAt(i)=='.'){
+				i++;
+				for(int j=i;j<word.length();j++){
+				clean=clean+word.charAt(j);
+				}
+				break;
+			}
+		}
+		return clean;
+	}
 	public static Name removePrefixFromField(JavacNode field) {
 		java.util.List<String> prefixes = null;
 		for (JavacNode node : field.down()) {
@@ -756,16 +803,7 @@ public class JediJavacUtil {
 			return Flags.PROTECTED;
 		}
 	}
-	
-	private static class GetterMethod {
-		private final Name name;
-		private final JCExpression type;
-		
-		GetterMethod(Name name, JCExpression type) {
-			this.name = name;
-			this.type = type;
-		}
-	}
+
 	
 	
 	

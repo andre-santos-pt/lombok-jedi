@@ -55,9 +55,23 @@ public @interface Observable {
 	  * 
 	  * the name of the field generated, in case no custom interface is defined.
 	  * <p>default value is <method_name>listeners
-	  * <p>if there is a field with a custom name defined, the field/subscribe/unsubscribe are not created.
+	  * <p>if there is a field with the custom or default name, the field is not created.
 	  */
 	 String fieldName() default "";
+	 /**
+	  * 
+	  * the name of the field generated, in case no custom interface is defined.
+	  * <p>default value is add<Interface_Name>
+	  * <p>if there is a method with the custom or default name, the method won't be created.
+	  */
+	String addMethodName() default ""; 
+	 /**
+	  * 
+	  * the name of the field generated, in case no custom interface is defined.
+	  * <p>default value is remove<Interface_Name>
+	  * <p>if there is a method with the custom or default name, the method won't be created.
+	  */
+	String removeMethodName() default "";
 	 
 	
 }
