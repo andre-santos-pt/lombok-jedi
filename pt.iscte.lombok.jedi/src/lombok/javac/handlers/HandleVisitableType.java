@@ -69,7 +69,7 @@ public class HandleVisitableType extends JavacAnnotationHandler<VisitableType> {
 		JCClassDecl clazz = (JCClassDecl) annotationNode.up().get();
 		Type type = clazz.sym.type;
 		
-		if(!HandleVisitableNode.isAbstractType(typeNode))
+		if(!JediJavacUtil.isAbstractType(typeNode))
 			addVisitMethod(maker, typeNode, visitorType, type,annotationName);
 		
 		for(Type s : HandleVisitableNode.getVisitorNodes(type.toString()))

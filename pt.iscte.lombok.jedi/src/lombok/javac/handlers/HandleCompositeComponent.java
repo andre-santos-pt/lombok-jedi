@@ -2,7 +2,7 @@ package lombok.javac.handlers;
 
 import static lombok.javac.Javac.CTC_BOT;
 
-
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 
 import lombok.AccessLevel;
@@ -58,9 +58,17 @@ public class HandleCompositeComponent extends JavacAnnotationHandler<CompositeCo
 		if(fieldName.equals("")||fieldName==null){
 			fieldName="parent";
 		}
-		JavacNode fieldnode=createParentField(annotationNode,maker,composite,fieldName,CompositeComponent.class.getName());
-		createGetParent(annotationNode,maker,composite,fieldnode,methodname,CompositeComponent.class.getName());
-		createConstructor(annotationNode,maker,composite,fieldnode,CompositeComponent.class.getName());
+		JavacNode fieldnode=null;
+		if(!JediJavacUtil.isInterface(annotationNode.up())){
+			fieldnode=createParentField(annotationNode,maker,composite,fieldName,CompositeComponent.class.getName());
+			createConstructor(annotationNode,maker,composite,fieldnode,CompositeComponent.class.getName());
+			createGetParent(annotationNode,maker,composite,fieldnode,methodname,true,CompositeComponent.class.getName());
+		}else{
+			createGetParent(annotationNode,maker,composite,fieldnode,methodname,false,CompositeComponent.class.getName());
+		}
+		
+		
+		
 	}
 	private void createConstructor(JavacNode annotationNode, JavacTreeMaker maker, JCClassDecl composite,JavacNode fieldnode,String annotationName) {
 		// TODO Auto-generated method stub
@@ -145,9 +153,13 @@ public class HandleCompositeComponent extends JavacAnnotationHandler<CompositeCo
 		//typeNode.toName("$")
 		JediJavacUtil.injectMethod(annotationNode.up(),constructor,annotationName);
 	}
-	private void createGetParent(JavacNode node, JavacTreeMaker maker, JCClassDecl composite, JavacNode fieldnode, String methodname,String annotationName) {
-		JCReturn statement= maker.Return(maker.Ident(node.toName(fieldnode.getName())));
-		JCBlock body= maker.Block(0, List.<JCStatement>of(statement));
+	private void createGetParent(JavacNode node, JavacTreeMaker maker, JCClassDecl composite, JavacNode fieldnode, String methodname,boolean withBody, String annotationName) {
+		JCBlock body =null;
+		if(withBody){
+			JCReturn statement= maker.Return(maker.Ident(node.toName(fieldnode.getName())));
+		body= maker.Block(0, List.<JCStatement>of(statement));
+		}
+		
 		JCMethodDecl getParent=maker.MethodDef(maker.Modifiers(Flags.PUBLIC),node.toName(methodname) , maker.Ident(composite.name), 
 				List.<JCTypeParameter>nil(), List.<JCVariableDecl>nil(), List.<JCExpression>nil(),body, null);
 		JediJavacUtil.injectMethod(node.up(),getParent,annotationName);

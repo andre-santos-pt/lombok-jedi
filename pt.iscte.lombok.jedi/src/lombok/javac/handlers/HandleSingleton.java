@@ -67,7 +67,7 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 		if(((JCClassDecl)node.up().get()).sym.isInterface()){
 			node.addError("@Singleton can not be used on Interfaces.");
 		}
-		if(HandleVisitableNode.isAbstractType(node.up())){
+		if(JediJavacUtil.isAbstractType(node.up())){
 			node.addError("@Singleton can not be used on Abstract classes.");
 		}
 		for (JavacNode subnode : node.up().down()) {

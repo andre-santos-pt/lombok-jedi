@@ -74,9 +74,10 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChi
 			}else{
 				 type =field.sym.type;
 			}
-			
+		
 		CompositeComponent containsAnnotation = type.tsym.getAnnotation(CompositeComponent.class);
-			List<Type> closure = types.closure(field.sym.type);
+		
+		List<Type> closure = types.closure(field.sym.type);
 			
 			
 				if (!iscollection(closure)) {
@@ -87,9 +88,12 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChi
 							fieldNode.addError("This type must be a class annotated with @"+CompositeComponent.class.getSimpleName());
 							//fieldNode.addError("The type argument of this Collection must be annotated with  @ " + CompositeComponent.class.getSimpleName());
 							} else {
+								if(!type.tsym.isInterface()){
+									injectOnConstructor(maker, fieldNode.up(),annotationName);	
+								}
 								createMethodAdd(maker, fieldNode.up(), field,annotationName);
 								createMethodgetSon(maker, fieldNode.up(), field,annotationName);
-								injectOnConstructor(maker, fieldNode.up(),annotationName);
+								
 							}
 						
 					}
@@ -102,9 +106,12 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChi
 							if (containsAnnotation == null) {
 								fieldNode.addError("The type argument of this Collection must be annotated with  @ " + CompositeComponent.class.getSimpleName());
 							}else{
+								if(!type.tsym.isInterface()){
+									injectOnConstructor(maker, fieldNode.up(),annotationName);
+								}
 								createMethodAddList(maker, fieldNode.up(), field,annotationName);
 								createMethodgetChildren(maker, fieldNode.up(), field,annotationName);
-								injectOnConstructor(maker, fieldNode.up(),annotationName);
+								
 							}
 						}
 						

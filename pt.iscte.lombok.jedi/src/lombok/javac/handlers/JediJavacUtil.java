@@ -121,6 +121,15 @@ public class JediJavacUtil {
 		}
 		return false;
 	}
+	static boolean isAbstractType(JavacNode typeNode) {
+		JCClassDecl clazz = (JCClassDecl) typeNode.get();
+		boolean abstractType = clazz.sym.type.isInterface() || (clazz.getModifiers().flags & Flags.ABSTRACT) == Flags.ABSTRACT;
+		return abstractType;
+	}
+	static boolean isInterface(JavacNode typeNode){
+		JCClassDecl clazz = (JCClassDecl) typeNode.get();
+		return clazz.sym.isInterface();
+	}
 	private static class MarkingScanner extends TreeScanner {
 		private final JCTree source;
 		private final Context context;

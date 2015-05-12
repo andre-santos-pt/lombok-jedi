@@ -28,5 +28,5 @@ import java.lang.annotation.Target;
  *</ul>
  */
 public @interface VisitableChildren {
-	Class<?> VisitableType() default void.class;
+	
 }

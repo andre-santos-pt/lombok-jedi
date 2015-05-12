@@ -101,8 +101,7 @@ public class HandleVisitableNode extends JavacAnnotationHandler<VisitableNode> {
 		}
 		if(count>1){
 			typeNode.addError("Cannot have more than one field annotated with @"+VisitableChildren.class.getSimpleName());
-		}else
-		if(!clazz.sym.isInterface()){
+		}else{
 			
 			Type type = clazz.sym.type;
 			
@@ -121,15 +120,15 @@ public class HandleVisitableNode extends JavacAnnotationHandler<VisitableNode> {
 				}
 
 			}	
-		}else{
-			annotationNode.addError("Cannot be used on Interfaces.");
+	
 		}
 		
 		
 	}
 
 	static void injectAcceptMethod(JavacNode typeNode, JavacTreeMaker maker, Type type, String visitorType,String annotationName) {
-		boolean abstractType = isAbstractType(typeNode);
+		boolean abstractType = JediJavacUtil.isAbstractType(typeNode);
+		boolean InterfaceTyoe= JediJavacUtil.isInterface(typeNode);
 		Types types = Types.instance(typeNode.getAst().getContext());
 		JCVariableDecl param = maker.VarDef(maker.Modifiers(Flags.PARAMETER), typeNode.toName("visitor"), JediJavacUtil.chainDotsString(typeNode, visitorType),
 		// maker.Ident(visitorType),
@@ -137,7 +136,7 @@ public class HandleVisitableNode extends JavacAnnotationHandler<VisitableNode> {
 		
 		JCBlock bodyBlock = null;
 		
-		if (!abstractType) {
+		if (!abstractType && !InterfaceTyoe) {
 			JCExpression callVisit = maker.Apply(List.<JCExpression>nil(), maker.Select(maker.Ident(param.getName()), typeNode.toName("visit")), List.<JCExpression>of(maker.Ident(typeNode.toName("this"))));
 			
 			JCStatement statement = null;
@@ -180,10 +179,6 @@ public class HandleVisitableNode extends JavacAnnotationHandler<VisitableNode> {
 		JediJavacUtil.injectMethod(typeNode, acceptMethod,annotationName);
 	}
 	
-	static boolean isAbstractType(JavacNode typeNode) {
-		JCClassDecl clazz = (JCClassDecl) typeNode.get();
-		boolean abstractType = clazz.sym.type.isInterface() || (clazz.getModifiers().flags & Flags.ABSTRACT) == Flags.ABSTRACT;
-		return abstractType;
-	}
+	
 	
 }

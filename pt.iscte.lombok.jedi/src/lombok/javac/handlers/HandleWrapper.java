@@ -48,6 +48,7 @@ import lombok.AccessLevel;
 import lombok.CompositeChildren;
 import lombok.Singleton;
 import lombok.Wrapper;
+import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;
@@ -144,6 +145,8 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 		}
 		if(!cl.sym.isInterface()){
 			JavacNode fieldNode = createLocalField(node, maker, type,fieldName,Wrapper.class.getName());
+			
+			if(!ConstructorExists(node.up(),maker,type,fieldNode))
 			handleConstructor(node, maker, type, fieldNode,Wrapper.class.getName());
 			handleMethods(node.up(), maker, type, fieldNode,true,Wrapper.class.getName());
 		}else{
@@ -152,6 +155,24 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 		
 		
 		
+	}
+
+	private boolean ConstructorExists(JavacNode classNode, JavacTreeMaker maker,
+			Type classtype,JavacNode fieldNode) {
+		JCMethodDecl method;
+		JCVariableDecl var= (JCVariableDecl)fieldNode.get();
+		for (JavacNode subnode : classNode.down()) {
+			if(subnode.getKind()== Kind.METHOD){
+				method=(JCMethodDecl)subnode.get();
+				if (method.getName().toString().equals("<init>")) {
+					if(JediJavacUtil.parametersEquals(method.getParameters(), List.<JCVariableDecl>of(var))){
+						return true;	
+					}
+				}
+			}
+				
+		}
+		return false;
 	}
 
 	private JavacNode createLocalField(JavacNode node, JavacTreeMaker maker,
@@ -171,7 +192,8 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 				AccessLevel.PACKAGE, List.<JCAnnotation> nil(), node.up(),
 				List.<JavacNode> nil(), null, node);
 		constructor.mods = maker.Modifiers(Flags.PUBLIC);
-		Name argname = node.toName(instancetype.toString().toLowerCase());
+		String argnameString =instancetype.toString().toLowerCase();
+		Name argname = node.toName(JediJavacUtil.removePrefixFromString(argnameString));
 		JCVariableDecl arg = maker.VarDef(maker.Modifiers(0), argname,
 				maker.Ident(node.toName(instancetype.toString())), null);
 		constructor.params = List.<JCVariableDecl> of(arg);
@@ -215,7 +237,7 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 						}
 						JCBlock body=null;
 						if(withBody){
-							Name fieldName = JediJavacUtil.removePrefixFromField(fieldNode);
+							Name fieldName = node.toName(fieldNode.getName());
 						ListBuffer<JCStatement> stats = new ListBuffer<JCStatement>();
 						 JCMethodInvocation newCall = maker.Apply(NIL_EXPRESSION,
 						 maker.Select(maker.Ident(fieldName),  member.name),
@@ -264,14 +286,14 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 		int i = 0;
 		for (TypeMirror param : methodType.getParameterTypes()) {
 				Name name = node.toName(paramList.get(i)
-					.getSimpleName().toString());
+					.toString());
 			JCExpression type = null;
 			try {
 				type = JavacResolution.typeToJCTree((Type) param,
 						node.getAst(), true);
 			} catch (TypeNotConvertibleException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				type=maker.Ident(node.toName(param.toString()));
+				
 			}
 			parameters.append(maker.VarDef(maker.Modifiers(0), name,
 					type, null));
