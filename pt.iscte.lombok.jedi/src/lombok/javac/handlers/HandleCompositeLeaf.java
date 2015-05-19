@@ -73,18 +73,20 @@ public class HandleCompositeLeaf extends JavacAnnotationHandler<CompositeLeaf> {
 		Types types = Types.instance(typeNode.getAst().getContext());
 		JCClassDecl clazz = (JCClassDecl) annotationNode.up().get();
 		Type type = clazz.sym.type;
-		
-		List<Type> closure = types.closure(type);
-		
-		for (Type s : closure) {
-			ClassType ct = (ClassType) s;
-			CompositeComponent ann = ct.tsym.getAnnotation(CompositeComponent.class);
-			if (ann != null) {
-				injectOnConstructor(maker, annotationNode.up(), s, annotationNode.up(), ct);
-			}
-			// injectOnConstructor(maker,typenode);
+		if(!JediJavacUtil.isInterface(annotationNode.up())){
+			List<Type> closure = types.closure(type);
 			
+			for (Type s : closure) {
+				ClassType ct = (ClassType) s;
+				CompositeComponent ann = ct.tsym.getAnnotation(CompositeComponent.class);
+				if (ann != null) {
+					injectOnConstructor(maker, annotationNode.up(), s, annotationNode.up(), ct);
+				}
+				// injectOnConstructor(maker,typenode);
+				
+			}	
 		}
+		
 
 
 	}

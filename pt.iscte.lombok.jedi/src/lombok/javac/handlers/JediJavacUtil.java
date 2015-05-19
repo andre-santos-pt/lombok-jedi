@@ -117,7 +117,7 @@ public class JediJavacUtil {
 					return false;
 				}
 			}
-			return true;
+		return true;
 		}
 		return false;
 	}
@@ -945,6 +945,7 @@ public class JediJavacUtil {
 	 */
 	public static JavacNode injectType(JavacNode typeNode, final JCClassDecl type,String name) {
 		JCClassDecl typeDecl = (JCClassDecl) typeNode.get();
+		
 		//addSuppressWarningsAll(type.mods, typeNode, type.pos, getGeneratedBy(type), typeNode.getContext());
 		addGenerated(type.mods, typeNode, type.pos, getGeneratedBy(type), typeNode.getContext(),name);
 		typeDecl.defs = typeDecl.defs.append(type);
@@ -1004,10 +1005,11 @@ public class JediJavacUtil {
 	}
 	*/
 	public static void addGenerated(JCModifiers mods, JavacNode node, int pos, JCTree source, Context context,String name) {
+		String clean="JEDI."+removePrefixFromString(name);
 		if (!LombokOptionsFactory.getDelombokOptions(context).getFormatPreferences().generateGenerated()) return;
 		
 		if (!Boolean.FALSE.equals(node.getAst().readConfiguration(ConfigurationKeys.ADD_GENERATED_ANNOTATIONS))) {
-			addAnnotation(mods, node, pos, source, context, "javax.annotation.Generated", node.getTreeMaker().Literal(name));
+			addAnnotation(mods, node, pos, source, context, "javax.annotation.Generated", node.getTreeMaker().Literal(clean));
 		}
 	}
 	private static void addAnnotation(JCModifiers mods, JavacNode node, int pos, JCTree source, Context context, String annotationTypeFqn, JCExpression arg) {
