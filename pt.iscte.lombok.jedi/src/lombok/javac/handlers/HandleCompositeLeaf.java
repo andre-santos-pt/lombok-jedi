@@ -37,6 +37,7 @@ import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
+import lombok.javac.ResolutionResetNeeded;
 
 import org.mangosdk.spi.ProviderFor;
 
@@ -55,17 +56,11 @@ import com.sun.tools.javac.util.List;
 
 
 @HandlerPriority(10)
+@ResolutionResetNeeded
 @ProviderFor(JavacAnnotationHandler.class)
 public class HandleCompositeLeaf extends JavacAnnotationHandler<CompositeLeaf> {
 
-	private static Map<String,JCClassDecl> subtypes = new HashMap<String, JCClassDecl>();
 
-	public static JCClassDecl getComposite(String rootNode) {
-		if(!subtypes.containsKey(rootNode))
-			return null;
-		else
-			return subtypes.get(rootNode);
-	}
 
 	@Override public void handle(AnnotationValues<CompositeLeaf> annotation, JCAnnotation ast, JavacNode annotationNode) {
 		JavacNode typeNode = annotationNode.up();

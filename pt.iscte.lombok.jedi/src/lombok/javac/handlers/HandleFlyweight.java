@@ -15,6 +15,7 @@ import lombok.core.AST.Kind;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
+import lombok.javac.ResolutionResetNeeded;
 import lombok.javac.handlers.HandleConstructor;
 import lombok.javac.handlers.HandleConstructor.SkipIfConstructorExists;
 import lombok.javac.handlers.HandleEqualsAndHashCode;
@@ -43,7 +44,7 @@ import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.ListBuffer;
 
-
+@ResolutionResetNeeded
 @ProviderFor(JavacAnnotationHandler.class)
 public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 	

@@ -32,6 +32,7 @@ import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
+import lombok.javac.ResolutionResetNeeded;
 import lombok.javac.JavacTreeMaker.TypeTag;
 
 import org.mangosdk.spi.ProviderFor;
@@ -62,6 +63,7 @@ import com.sun.tools.javac.util.Name;
 
 @ProviderFor(JavacAnnotationHandler.class)
 @HandlerPriority(20)
+@ResolutionResetNeeded
 public class HandleObserverNotify extends JavacAnnotationHandler<ObserverNotify> {
 	
 	@Override public void handle(AnnotationValues<ObserverNotify> annotation, JCAnnotation ast, JavacNode node) {

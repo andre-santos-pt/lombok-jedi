@@ -32,6 +32,7 @@ import lombok.core.AnnotationValues;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
+import lombok.javac.ResolutionResetNeeded;
 import lombok.javac.handlers.HandleConstructor;
 import lombok.javac.handlers.HandleData;
 
@@ -55,6 +56,7 @@ import com.sun.tools.javac.util.Name;
 
 
 @ProviderFor(JavacAnnotationHandler.class)
+@ResolutionResetNeeded
 public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 
 	private static final List<JCExpression> NIL_EXPRESSION = List.nil();

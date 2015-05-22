@@ -54,6 +54,7 @@ import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 import lombok.javac.JavacResolution;
+import lombok.javac.ResolutionResetNeeded;
 import lombok.javac.JavacResolution.TypeNotConvertibleException;
 import lombok.javac.JavacTreeMaker;
 import lombok.javac.JavacTreeMaker.TypeTag;
@@ -84,6 +85,7 @@ import com.sun.tools.javac.util.Name;
 
 @ProviderFor(JavacAnnotationHandler.class)
 @HandlerPriority(12)
+@ResolutionResetNeeded
 public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 
 	private static final List<JCExpression> NIL_EXPRESSION = List.nil();
@@ -212,9 +214,7 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 		ListBuffer<JCExpression> arguments;
 		Type retn;
 		boolean useReturn;
-		
 		for (Symbol member : classtype.tsym.getEnclosedElements()) {
-
 			if (member.isConstructor())
 				continue;
 			

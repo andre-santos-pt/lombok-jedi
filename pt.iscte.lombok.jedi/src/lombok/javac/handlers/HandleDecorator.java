@@ -45,6 +45,7 @@ import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
+import lombok.javac.ResolutionResetNeeded;
 import lombok.javac.JavacTreeMaker.TypeTag;
 
 import org.mangosdk.spi.ProviderFor;
@@ -74,6 +75,7 @@ import com.sun.tools.javac.util.Name;
 
 @ProviderFor(JavacAnnotationHandler.class) 
 @HandlerPriority(12)
+
 public class HandleDecorator extends JavacAnnotationHandler<Decorator> {
 	
 	private static final List<JCExpression> NIL_EXPRESSION = List.nil();
@@ -184,7 +186,6 @@ public class HandleDecorator extends JavacAnnotationHandler<Decorator> {
 		Types types = Types.instance(clazznode.getAst().getContext());
 		
 		Type type = clazz.sym.type;
-
 		List<Type> closure = types.closure(type);
 		int i=1;
 		for (Type s : closure) {

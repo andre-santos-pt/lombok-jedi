@@ -15,6 +15,7 @@ import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
+import lombok.javac.ResolutionResetNeeded;
 
 import org.mangosdk.spi.ProviderFor;
 
@@ -37,6 +38,7 @@ import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.ListBuffer;
 @HandlerPriority(10)
+@ResolutionResetNeeded
 @ProviderFor(JavacAnnotationHandler.class)
 public class HandleCompositeComponent extends JavacAnnotationHandler<CompositeComponent> {
 	private static final List<JCExpression> NIL_EXPRESSION = List.nil();

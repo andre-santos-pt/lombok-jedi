@@ -117,6 +117,7 @@ public class HandleVisitableNode extends JavacAnnotationHandler<VisitableNode> {
 					subtypes.get(ct.toString()).add(type);
 					String visitorType = ct.toString() + "." + ann.visitorTypeName();
 					injectAcceptMethod(typeNode, maker, type, visitorType,VisitableNode.class.getName());
+					
 				}
 
 			}	

@@ -14,6 +14,7 @@ import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
+import lombok.javac.ResolutionResetNeeded;
 
 import org.mangosdk.spi.ProviderFor;
 
@@ -35,6 +36,7 @@ import com.sun.tools.javac.util.List;
 
 @ProviderFor(JavacAnnotationHandler.class) 
 @HandlerPriority(8) 
+@ResolutionResetNeeded
 public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChildren> {
 	public void handle(AnnotationValues<CompositeChildren> annotation, JCAnnotation ast, JavacNode annotationNode) {
 		

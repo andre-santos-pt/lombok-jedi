@@ -28,6 +28,7 @@ import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
+import lombok.javac.ResolutionResetNeeded;
 import lombok.javac.JavacTreeMaker.TypeTag;
 import lombok.javac.handlers.JediJavacUtil;
 
@@ -58,6 +59,7 @@ import com.sun.tools.javac.util.Name;
 
 @ProviderFor(JavacAnnotationHandler.class)
 @HandlerPriority(20)
+@ResolutionResetNeeded
 public class HandleObservable extends JavacAnnotationHandler<Observable> {
 
 	private static final List<JCExpression> NIL_EXPRESSION = List.nil();
@@ -227,9 +229,6 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 										+ " cannot store interfaces of type "
 										+ interfName);
 							}
-						} else {
-							node.addError("Please define a custom name difrent from "
-									+ fieldName);
 						}
 					}
 				}

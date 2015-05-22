@@ -32,6 +32,7 @@ import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
+import lombok.javac.ResolutionResetNeeded;
 
 import org.mangosdk.spi.ProviderFor;
 
@@ -44,6 +45,7 @@ import com.sun.tools.javac.util.List;
 
 
 @HandlerPriority(8)
+@ResolutionResetNeeded
 @ProviderFor(JavacAnnotationHandler.class)
 public class HandleComposite extends JavacAnnotationHandler<Composite> {
 
