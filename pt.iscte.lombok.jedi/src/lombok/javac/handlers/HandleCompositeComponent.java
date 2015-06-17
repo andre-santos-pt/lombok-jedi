@@ -6,8 +6,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 
 import lombok.AccessLevel;
-import lombok.CompositeChildren;
-import lombok.CompositeComponent;
+import lombok.Composite;
 import lombok.Singleton;
 import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
@@ -40,17 +39,16 @@ import com.sun.tools.javac.util.ListBuffer;
 @HandlerPriority(10)
 @ResolutionResetNeeded
 @ProviderFor(JavacAnnotationHandler.class)
-public class HandleCompositeComponent extends JavacAnnotationHandler<CompositeComponent> {
+public class HandleCompositeComponent extends JavacAnnotationHandler<Composite.Component> {
 	private static final List<JCExpression> NIL_EXPRESSION = List.nil();
 	
-	@Override public void handle(AnnotationValues<CompositeComponent> annotation, JCAnnotation ast, JavacNode annotationNode) {
-		
+	@Override public void handle(AnnotationValues<Composite.Component> annotation, JCAnnotation ast, JavacNode annotationNode) {
 		JavacNode typeNode = annotationNode.up();
 		JavacTreeMaker maker = typeNode.getTreeMaker();
 		JCClassDecl clazz = (JCClassDecl) annotationNode.up().get();
 		Type type = clazz.sym.type;
 		JCClassDecl composite =HandleComposite.getComposite(((ClassType)type).toString());
-		CompositeComponent annotationInstance=  annotation.getInstance();
+		Composite.Component annotationInstance=  annotation.getInstance();
 	
 		String methodname = annotationInstance.methodName();
 		if(methodname.equals("")||methodname==null){
@@ -62,11 +60,11 @@ public class HandleCompositeComponent extends JavacAnnotationHandler<CompositeCo
 		}
 		JavacNode fieldnode=null;
 		if(!JediJavacUtil.isInterface(annotationNode.up())){
-			fieldnode=createParentField(annotationNode,maker,composite,fieldName,CompositeComponent.class.getName());
-			createConstructor(annotationNode,maker,composite,fieldnode,CompositeComponent.class.getName());
-			createGetParent(annotationNode,maker,composite,fieldnode,methodname,true,CompositeComponent.class.getName());
+			fieldnode=createParentField(annotationNode,maker,composite,fieldName,Composite.Component.class.getName());
+			createConstructor(annotationNode,maker,composite,fieldnode,Composite.Component.class.getName());
+			createGetParent(annotationNode,maker,composite,fieldnode,methodname,true,Composite.Component.class.getName());
 		}else{
-			createGetParent(annotationNode,maker,composite,fieldnode,methodname,false,CompositeComponent.class.getName());
+			createGetParent(annotationNode,maker,composite,fieldnode,methodname,false,Composite.Component.class.getName());
 		}
 		
 		
@@ -83,13 +81,13 @@ public class HandleCompositeComponent extends JavacAnnotationHandler<CompositeCo
 			if(node.getKind().equals(Kind.METHOD)){
 				JCMethodDecl method = ((JCMethodDecl)node.get());
 				if(method.restype==null ){
-					if(method.mods.flags==Flags.PUBLIC){
+				
+					if(method.mods.flags==Flags.PRIVATE){
+						constuctors.add(method.getParameters());
+					}else{
 						haspublic=true;
 						constructornode=node;
 					}
-					if(method.mods.flags==Flags.PRIVATE){
-						constuctors.add(method.getParameters());
-					}	
 				}
 			}	
 		}

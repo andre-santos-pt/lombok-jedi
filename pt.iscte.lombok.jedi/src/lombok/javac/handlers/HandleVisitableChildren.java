@@ -28,10 +28,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import lombok.CompositeComponent;
-import lombok.VisitableChildren;
-import lombok.VisitableNode;
-import lombok.VisitableType;
+import lombok.Visitor;
+import lombok.Composite.Component;
+import lombok.Visitor.Children;
+import lombok.Visitor.Node;
 import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
@@ -52,24 +52,36 @@ import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 @ProviderFor(JavacAnnotationHandler.class)
 @ResolutionResetNeeded
 @HandlerPriority(1)
-public class HandleVisitableChildren extends JavacAnnotationHandler<VisitableChildren> {
+public class HandleVisitableChildren extends JavacAnnotationHandler<Children> {
 	
 	private static Map<String, List<JCVariableDecl>> map = new HashMap<String, List<JCVariableDecl>>();
 	
-	@Override public void handle(AnnotationValues<VisitableChildren> annotation, JCAnnotation ast, JavacNode annotationNode) {
-		
+	@Override public void handle(AnnotationValues<Children> annotation, JCAnnotation ast, JavacNode annotationNode) {
 		JavacNode typeNode = annotationNode.up();
 		JCVariableDecl field = (JCVariableDecl) typeNode.get();
 		
 		JCClassDecl parentClass = (JCClassDecl) typeNode.up().get();
 		boolean isVisitableNode=false;
 //		Types types = Types.instance(typeNode.getContext());
-		for (JavacNode subnode : typeNode.up().down()) {
-			if(subnode.getKind()==Kind.ANNOTATION){
-				JCAnnotation ann =(JCAnnotation)subnode.get();
-				if(ann.annotationType.toString().equals("VisitableNode")){
-					isVisitableNode=true;
-				}
+//		for (JavacNode subnode : typeNode.up().down()) {
+//			if(subnode.getKind()==Kind.ANNOTATION){
+//				JCAnnotation ann =(JCAnnotation)subnode.get();
+//				if(ann.annotationType.toString().equals("VisitableNode")){
+//					isVisitableNode=true;
+//				}
+//			}
+//		}
+		Types types = Types.instance(typeNode.getAst().getContext());
+		Type type = parentClass.sym.type;
+		
+		List<Type> closure = types.closure(type);
+
+		for(Type s : closure) {
+			ClassType ct = (ClassType) s;
+			Visitor.Node ann = ct.tsym.getAnnotation(Visitor.Node.class);
+		
+			if(ann != null) {
+				isVisitableNode=true;
 			}
 		}
 		if(isVisitableNode){
@@ -99,7 +111,7 @@ public class HandleVisitableChildren extends JavacAnnotationHandler<VisitableChi
 				 type =field.sym.type;
 			}
 			
-		VisitableNode containsAnnotation = type.tsym.getAnnotation(VisitableNode.class);
+		Node containsAnnotation = type.tsym.getAnnotation(Visitor.Node.class);
 			List<Type> closure = types.closure(field.sym.type);
 			
 			
@@ -108,7 +120,7 @@ public class HandleVisitableChildren extends JavacAnnotationHandler<VisitableChi
 						fieldNode.addError("This Type is not a subtype "+Collection.class.getSimpleName()+".");	
 					} else {
 						if (containsAnnotation == null) {
-							fieldNode.addError("This type must be a class annotated with @"+VisitableNode.class.getSimpleName());
+							fieldNode.addError("This type must be a class annotated with @"+Visitor.Node.class.getSimpleName());
 							//fieldNode.addError("The type argument of this Collection must be annotated with  @ " + CompositeComponent.class.getSimpleName());
 							} 
 						
@@ -120,7 +132,7 @@ public class HandleVisitableChildren extends JavacAnnotationHandler<VisitableChi
 							fieldNode.addError("The type "+type.tsym.toString()+" cannot have more than one type argument.");
 						}else{
 							if (containsAnnotation == null) {
-								fieldNode.addError("The type argument of this Collection must be annotated with  @ " + VisitableNode.class.getSimpleName());
+								fieldNode.addError("The type argument of this Collection must be annotated with  @ " + Visitor.Node.class.getSimpleName());
 							}
 						}
 						

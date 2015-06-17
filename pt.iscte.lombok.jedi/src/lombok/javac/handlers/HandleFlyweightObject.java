@@ -1,6 +1,6 @@
 package lombok.javac.handlers;
 
-import lombok.FlyweightObject;
+import lombok.Flyweight;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;
@@ -16,8 +16,8 @@ import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 @ResolutionResetNeeded
 @ProviderFor(JavacAnnotationHandler.class)
 @HandlerPriority(20)
-public class HandleFlyweightObject extends JavacAnnotationHandler<FlyweightObject> {
-	@Override public void handle(AnnotationValues<FlyweightObject> annotation, JCAnnotation ast, JavacNode node) {
+public class HandleFlyweightObject extends JavacAnnotationHandler<Flyweight.Object> {
+	@Override public void handle(AnnotationValues<Flyweight.Object> annotation, JCAnnotation ast, JavacNode node) {
 		
 		JCVariableDecl var=(JCVariableDecl) node.up().get();
 		if(var.mods.flags!=Flags.FINAL){

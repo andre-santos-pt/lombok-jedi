@@ -8,7 +8,6 @@ import static lombok.javac.Javac.CTC_NOT;
 import java.util.regex.Pattern;
 
 import lombok.AccessLevel;
-import lombok.CompositeChildren;
 import lombok.Flyweight;
 import lombok.core.AnnotationValues;
 import lombok.core.AST.Kind;
@@ -235,7 +234,7 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 		JCVariableDecl var;
 		for (JavacNode children : node.up().down()) {
 			if(children.getKind().equals(lombok.core.AST.Kind.FIELD) ){
-				notifyannotations = JediJavacUtil.findAnnotations(children, Pattern.compile("^(?:FlyweightObject)$", Pattern.CASE_INSENSITIVE));	
+				notifyannotations = JediJavacUtil.findAnnotations(children, Pattern.compile("^(?:Object)$", Pattern.CASE_INSENSITIVE));	
 				if(notifyannotations.size()>0){
 					var =(JCVariableDecl)children.get();
 					JCVariableDecl temp=maker.VarDef(maker.Modifiers(0), node.toName("param_"+var.name), var.vartype, null);
@@ -342,7 +341,7 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 		JCVariableDecl var;
 				for (JavacNode children : node.up().down()) {
 			if(children.getKind().equals(lombok.core.AST.Kind.FIELD) ){
-				notifyannotations = JediJavacUtil.findAnnotations(children, Pattern.compile("^(?:FlyweightObject)$", Pattern.CASE_INSENSITIVE));	
+				notifyannotations = JediJavacUtil.findAnnotations(children, Pattern.compile("^(?:Object)$", Pattern.CASE_INSENSITIVE));	
 				if(notifyannotations.size()>0){
 					var =(JCVariableDecl)children.get();
 						//shareable=shareable.prepend(maker.VarDef(maker.Modifiers(0),var.name ,(JCExpression)var.getType(), null));
@@ -351,7 +350,7 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 			}	
 		}
 				if(shareable.size()<1){
-					node.up().up().addError("Flyweight must contain 1 or more @FlyweightObjects");
+					node.up().up().addError("Flyweight must contain 1 or more @Flyweight.Objects");
 				}
 	}
 	private JCExpression definemap(List<JCVariableDecl> flyobjects, int i, JavacNode node, JavacTreeMaker maker,boolean test){

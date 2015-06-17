@@ -30,10 +30,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.CompositeChildren;
-import lombok.VisitableChildren;
-import lombok.VisitableNode;
-import lombok.VisitableType;
+import lombok.Visitor;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
 import lombok.core.AST.Kind;
@@ -63,7 +60,7 @@ import com.sun.tools.javac.util.Name;
 @ProviderFor(JavacAnnotationHandler.class) 
 @ResolutionResetNeeded 
 @HandlerPriority(2)
-public class HandleVisitableNode extends JavacAnnotationHandler<VisitableNode> {
+public class HandleVisitableNode extends JavacAnnotationHandler<Visitor.Node> {
 	
 	private static Map<String, Set<Type>> subtypes = new HashMap<String, Set<Type>>();
 	public static Set<Type> getVisitorNodes(String rootNode) {
@@ -72,8 +69,7 @@ public class HandleVisitableNode extends JavacAnnotationHandler<VisitableNode> {
 			return subtypes.get(rootNode);
 	}
 	
-	@Override public void handle(AnnotationValues<VisitableNode> annotation, JCAnnotation ast, JavacNode annotationNode) {
-
+	@Override public void handle(AnnotationValues<Visitor.Node> annotation, JCAnnotation ast, JavacNode annotationNode) {
 		JavacNode typeNode = annotationNode.up();
 		JavacTreeMaker maker = typeNode.getTreeMaker();
 		Types types = Types.instance(typeNode.getAst().getContext());
@@ -85,22 +81,18 @@ public class HandleVisitableNode extends JavacAnnotationHandler<VisitableNode> {
 				for (JavacNode fieldannotations : subnode.down()) {
 					if(fieldannotations.getKind().equals(Kind.ANNOTATION)){
 						JCAnnotation ann= (JCAnnotation)fieldannotations.get();
-						if(ann.type.toString().equals(VisitableChildren.class.getName())){
+						if(ann.type.toString().equals(Visitor.Children.class.getName())){
+						
 							count++;
 							
 						}
-
-
-
 					}
-
-
 				}
 
 			}
 		}
 		if(count>1){
-			typeNode.addError("Cannot have more than one field annotated with @"+VisitableChildren.class.getSimpleName());
+			typeNode.addError("Cannot have more than one field annotated with @"+Visitor.Children.class.getSimpleName());
 		}else{
 			
 			Type type = clazz.sym.type;
@@ -109,14 +101,14 @@ public class HandleVisitableNode extends JavacAnnotationHandler<VisitableNode> {
 			for (Type s : closure) {
 				
 				ClassType ct = (ClassType) s;
-				VisitableType ann = ct.tsym.getAnnotation(VisitableType.class);
+				Visitor ann = ct.tsym.getAnnotation(Visitor.class);
 				
 				if (ann != null) {
 					if (!subtypes.containsKey(ct.toString())) 
 						subtypes.put(ct.toString(), new HashSet<Type>());
 					subtypes.get(ct.toString()).add(type);
 					String visitorType = ct.toString() + "." + ann.visitorTypeName();
-					injectAcceptMethod(typeNode, maker, type, visitorType,VisitableNode.class.getName());
+					injectAcceptMethod(typeNode, maker, type, visitorType,Visitor.Node.class.getName());
 					
 				}
 

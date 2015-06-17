@@ -1,13 +1,13 @@
 package lombok.javac.handlers;
 
 import static lombok.javac.Javac.CTC_BOT;
+import lombok.Composite;
+import lombok.Visitor;
+import lombok.Composite.Children;
 
-import java.awt.Composite;
 import java.util.Collection;
 
-import lombok.CompositeChildren;
-import lombok.CompositeComponent;
-import lombok.VisitableNode;
+import lombok.Singleton;
 import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
@@ -21,6 +21,7 @@ import org.mangosdk.spi.ProviderFor;
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Types;
+import com.sun.tools.javac.code.Type.ClassType;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCAssign;
 import com.sun.tools.javac.tree.JCTree.JCBlock;
@@ -37,35 +38,49 @@ import com.sun.tools.javac.util.List;
 @ProviderFor(JavacAnnotationHandler.class) 
 @HandlerPriority(8) 
 @ResolutionResetNeeded
-public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChildren> {
-	public void handle(AnnotationValues<CompositeChildren> annotation, JCAnnotation ast, JavacNode annotationNode) {
-		
+public class HandleCompositeChildren extends JavacAnnotationHandler<Children> {
+	public void handle(AnnotationValues<Children> annotation, JCAnnotation ast, JavacNode annotationNode) {
+		Composite.Children annotationInstance=  annotation.getInstance();
+		String methodAddName = annotationInstance.methodAddChildrenName();
+		String methodGetName = annotationInstance.methodGetChildrenName();
 		
 		JavacNode fieldNode=annotationNode.up();
+		JavacNode clazzNode = fieldNode.up();
+		Types types = Types.instance(clazzNode.getAst().getContext());
+		
 		JCVariableDecl field = (JCVariableDecl) annotationNode.up().get();
 		boolean isCompositeNode=false;
 		//		Types types = Types.instance(typeNode.getContext());
-		for (JavacNode subnode : fieldNode.up().down()) {
-			if(subnode.getKind()==Kind.ANNOTATION){
-				JCAnnotation ann =(JCAnnotation)subnode.get();
-				if(ann.annotationType.toString().equals("Composite")){
-					isCompositeNode=true;
-				}
-			}
+		JCClassDecl clazz=(JCClassDecl) clazzNode.get();
+		List<Type> closure = types.closure(clazz.sym.type);
+		for (Type s : closure) {
+			
+			ClassType ct = (ClassType) s;
+			Composite ann = ct.tsym.getAnnotation(Composite.class);
+			if(ann!=null)
+				isCompositeNode=true;
 		}
+//		for (JavacNode subnode : fieldNode.up().down()) {
+//			if(subnode.getKind()==Kind.ANNOTATION){
+//				JCAnnotation ann =(JCAnnotation)subnode.get();
+//				if(ann.annotationType.toString().equals("Composite")){
+//					isCompositeNode=true;
+//				}
+//			}
+//		}
 		if(isCompositeNode){
 			checkFieldCompatibility(fieldNode,
-					field,CompositeChildren.class.getName());
+					field,Composite.Children.class.getName(),methodAddName,methodGetName);
 				
 		
 		}else{
-			annotationNode.up().up().addError("Only a class annotated with "+Composite.class.getSimpleName()+" can have a field annotated with "+CompositeChildren.class.getSimpleName()+".");
+			annotationNode.up().up().addError("Only a class annotated with "+Composite.class.getSimpleName()+" can have a field annotated with "+Composite.Children.class.getSimpleName()+".");
 		}
 		
 	}
 
 	private void checkFieldCompatibility(JavacNode fieldNode,
-			JCVariableDecl field,String annotationName) {
+			JCVariableDecl field,String annotationName, String methodAddName, String methodGetName) {
 		
 		JavacTreeMaker maker = fieldNode.getTreeMaker();
 		Types types = Types.instance(fieldNode.getAst().getContext());
@@ -77,7 +92,7 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChi
 				 type =field.sym.type;
 			}
 		
-		CompositeComponent containsAnnotation = type.tsym.getAnnotation(CompositeComponent.class);
+		Composite.Component containsAnnotation = type.tsym.getAnnotation(Composite.Component.class);
 		
 		List<Type> closure = types.closure(field.sym.type);
 			
@@ -87,14 +102,14 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChi
 						fieldNode.addError("This Type is not a subtype "+Collection.class.getSimpleName()+".");	
 					} else {
 						if (containsAnnotation == null) {
-							fieldNode.addError("This type must be a class annotated with @"+CompositeComponent.class.getSimpleName());
+							fieldNode.addError("This type must be a class annotated with @"+Composite.Component.class.getSimpleName());
 							//fieldNode.addError("The type argument of this Collection must be annotated with  @ " + CompositeComponent.class.getSimpleName());
 							} else {
 								if(!type.tsym.isInterface()){
-									injectOnConstructor(maker, fieldNode.up(),annotationName);	
+									injectOnConstructor(maker, fieldNode.up(),annotationName,methodAddName);	
 								}
-								createMethodAdd(maker, fieldNode.up(), field,annotationName);
-								createMethodgetSon(maker, fieldNode.up(), field,annotationName);
+								createMethodAdd(maker, fieldNode.up(), field,annotationName,methodAddName,!type.tsym.isInterface());
+								createMethodgetSon(maker, fieldNode.up(), field,annotationName,methodGetName,!type.tsym.isInterface());
 								
 							}
 						
@@ -106,13 +121,13 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChi
 							fieldNode.addError("The type "+type.tsym.toString()+" cannot have more than one type argument.");
 						}else{
 							if (containsAnnotation == null) {
-								fieldNode.addError("The type argument of this Collection must be annotated with  @ " + CompositeComponent.class.getSimpleName());
+								fieldNode.addError("The type argument of this Collection must be annotated with  @ " + Composite.Component.class.getSimpleName());
 							}else{
 								if(!type.tsym.isInterface()){
-									injectOnConstructor(maker, fieldNode.up(),annotationName);
+									injectOnConstructor(maker, fieldNode.up(),annotationName,methodAddName);
 								}
-								createMethodAddList(maker, fieldNode.up(), field,annotationName);
-								createMethodgetChildren(maker, fieldNode.up(), field,annotationName);
+								createMethodAddList(maker, fieldNode.up(), field,annotationName,methodAddName,!type.tsym.isInterface());
+								createMethodgetChildren(maker, fieldNode.up(), field,annotationName,methodGetName,!type.tsym.isInterface());
 								
 							}
 						}
@@ -125,31 +140,45 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChi
 	}
 	
 	private void createMethodgetSon(JavacTreeMaker maker, JavacNode classnode,
-			JCVariableDecl list,String annotationName) {
+			JCVariableDecl list,String annotationName,String methodGetName, boolean hasbody) {
+		if(methodGetName==null || methodGetName.equals("")){
+			methodGetName="getSon";
+		}
 		String componentName = list.sym.type.toString();
 		JCTypeApply type = maker.TypeApply(handleArrayType(classnode, maker, java.util.Collection.class), List.<JCExpression>of(maker.Ident(classnode.toName(componentName))));
 		//JCMethodInvocation addcall = maker.Apply(List.<JCExpression>nil(), maker.Select(handleArrayType(classnode, maker, java.util.Collections.class), classnode.toName("unmodifiableCollection")), List.<JCExpression>of(maker.Ident(list.name)));
-		JCBlock body = maker.Block(0, List.<JCStatement>of(maker.Return((maker.Ident(list.name)))));
-		JCMethodDecl method = maker.MethodDef(maker.Modifiers(Flags.PUBLIC), classnode.toName("getChildren"), maker.Ident(classnode.toName(componentName)), List.<JCTypeParameter>nil(), List.<JCVariableDecl>nil(), List.<JCExpression>nil(), body, null);
+		JCBlock body= null;
+		if(hasbody)
+		body = maker.Block(0, List.<JCStatement>of(maker.Return((maker.Ident(list.name)))));
+		JCMethodDecl method = maker.MethodDef(maker.Modifiers(Flags.PUBLIC), classnode.toName(methodGetName), maker.Ident(classnode.toName(componentName)), List.<JCTypeParameter>nil(), List.<JCVariableDecl>nil(), List.<JCExpression>nil(), body, null);
 		JediJavacUtil.injectMethod(classnode, method,annotationName);
 		
 	}
 
 	private void createMethodAdd(JavacTreeMaker maker, JavacNode classnode,
-			JCVariableDecl list,String annotationName) {
+			JCVariableDecl list,String annotationName, String methodAddName, boolean hasbody) {
+		if(methodAddName==null || methodAddName.equals("")){
+			methodAddName="addSon";
+		}
 		String componentName = list.sym.type.toString();
-		JCVariableDecl param = maker.VarDef(maker.Modifiers(0), classnode.toName("parent"), maker.Ident(classnode.toName(componentName)), null);
+		JCVariableDecl param = maker.VarDef(maker.Modifiers(0), classnode.toName("son"), maker.Ident(classnode.toName(componentName)), null);
 		//JCMethodInvocation addcall = maker.Apply(List.<JCExpression>nil(), maker.Select(maker.Ident(list.name), classnode.toName("add")), List.<JCExpression>of(maker.Ident(param.name)));
-		JCAssign assign = maker.Assign(maker.Ident(list.name), maker.Ident(param.name));
-		JCBlock body = maker.Block(0, List.<JCStatement>of(maker.Exec(assign)));
-		JCMethodDecl method = maker.MethodDef(maker.Modifiers(Flags.PUBLIC), classnode.toName("add"), maker.TypeIdent(lombok.javac.Javac.CTC_VOID), List.<JCTypeParameter>nil(), List.<JCVariableDecl>of(param), List.<JCExpression>nil(), body, null);
+		JCBlock body = null;
+		if(hasbody){
+			JCAssign assign = maker.Assign(maker.Ident(list.name), maker.Ident(param.name));
+		 body = maker.Block(0, List.<JCStatement>of(maker.Exec(assign)));
+		}
+		
+		JCMethodDecl method = maker.MethodDef(maker.Modifiers(Flags.PUBLIC), classnode.toName(methodAddName), maker.TypeIdent(lombok.javac.Javac.CTC_VOID), List.<JCTypeParameter>nil(), List.<JCVariableDecl>of(param), List.<JCExpression>nil(), body, null);
 		JediJavacUtil.injectMethod(classnode, method,annotationName);
 		
 	}
 
-	private void injectOnConstructor(JavacTreeMaker maker, JavacNode node, String annotationName) {
+	private void injectOnConstructor(JavacTreeMaker maker, JavacNode node, String annotationName, String methodAddName) {
 		boolean publiconstructor = false;
-		
+		if(methodAddName==null || methodAddName.equals("")){
+			methodAddName="addSon";
+		}
 		boolean mainConstructor = false;
 		JCMethodDecl constructor = null;
 		JavacNode constructornode = null;
@@ -177,7 +206,7 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChi
 		
 		if (mainConstructor) {
 			JCExpression cond = maker.Binary(lombok.javac.Javac.CTC_NOT_EQUAL, maker.Ident(constructor.getParameters().get(0).name), maker.Literal(CTC_BOT, null));
-			JCMethodInvocation addcall = maker.Apply(List.<JCExpression>nil(), maker.Select(maker.Ident(constructor.getParameters().get(0).name), node.toName("add")), List.<JCExpression>of(maker.Ident(node.toName("this"))));
+			JCMethodInvocation addcall = maker.Apply(List.<JCExpression>nil(), maker.Select(maker.Ident(constructor.getParameters().get(0).name), node.toName(methodAddName)), List.<JCExpression>of(maker.Ident(node.toName("this"))));
 			JCStatement statement = maker.If(cond, maker.Exec(addcall), null);
 			JCBlock body= maker.Block(0, List.<JCStatement>of(statement));
 			constructor.body.stats = constructor.body.stats.append(body);
@@ -185,6 +214,22 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChi
 		} else {
 			node.addError("class must have a public constructor with a parameter of type " + ((JCClassDecl) node.get()).name.toString());
 		}
+	}
+	
+	private void createMethodgetChildren(JavacTreeMaker maker, JavacNode classnode, JCVariableDecl list,String annotationName,String methodGetName, boolean hasbody) {
+		if(methodGetName==null || methodGetName.equals("")){
+			methodGetName="getChildren";
+		}
+		String componentName = list.sym.type.getTypeArguments().get(0).toString();
+		JCTypeApply type = maker.TypeApply(handleArrayType(classnode, maker, java.util.Collection.class), List.<JCExpression>of(maker.Ident(classnode.toName(componentName))));
+		JCBlock body=null;
+		if(hasbody){
+			JCMethodInvocation addcall = maker.Apply(List.<JCExpression>nil(), maker.Select(handleArrayType(classnode, maker, java.util.Collections.class), classnode.toName("unmodifiableCollection")), List.<JCExpression>of(maker.Ident(list.name)));
+			body = maker.Block(0, List.<JCStatement>of(maker.Return((addcall))));
+		}
+		JCMethodDecl method = maker.MethodDef(maker.Modifiers(Flags.PUBLIC), classnode.toName(methodGetName), type, List.<JCTypeParameter>nil(), List.<JCVariableDecl>nil(), List.<JCExpression>nil(), body, null);
+		JediJavacUtil.injectMethod(classnode, method,annotationName);
+		
 	}
 	
 	static boolean hasParentArgument(List<JCVariableDecl> parameters, String componentName) {
@@ -195,23 +240,20 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<CompositeChi
 		}
 		return false;
 	}
-	
-	private void createMethodgetChildren(JavacTreeMaker maker, JavacNode classnode, JCVariableDecl list,String annotationName) {
+
+	private void createMethodAddList(JavacTreeMaker maker, JavacNode classnode, JCVariableDecl list,String annotationName,String methodAddName, boolean hasbody) {
+		if(methodAddName==null || methodAddName.equals("")){
+			methodAddName="addSon";
+		}
 		String componentName = list.sym.type.getTypeArguments().get(0).toString();
-		JCTypeApply type = maker.TypeApply(handleArrayType(classnode, maker, java.util.Collection.class), List.<JCExpression>of(maker.Ident(classnode.toName(componentName))));
-		JCMethodInvocation addcall = maker.Apply(List.<JCExpression>nil(), maker.Select(handleArrayType(classnode, maker, java.util.Collections.class), classnode.toName("unmodifiableCollection")), List.<JCExpression>of(maker.Ident(list.name)));
-		JCBlock body = maker.Block(0, List.<JCStatement>of(maker.Return((addcall))));
-		JCMethodDecl method = maker.MethodDef(maker.Modifiers(Flags.PUBLIC), classnode.toName("getChildren"), type, List.<JCTypeParameter>nil(), List.<JCVariableDecl>nil(), List.<JCExpression>nil(), body, null);
-		JediJavacUtil.injectMethod(classnode, method,annotationName);
-		
-	}
-	
-	private void createMethodAddList(JavacTreeMaker maker, JavacNode classnode, JCVariableDecl list,String annotationName) {
-		String componentName = list.sym.type.getTypeArguments().get(0).toString();
-		JCVariableDecl param = maker.VarDef(maker.Modifiers(0), classnode.toName("parent"), maker.Ident(classnode.toName(componentName)), null);
-		JCMethodInvocation addcall = maker.Apply(List.<JCExpression>nil(), maker.Select(maker.Ident(list.name), classnode.toName("add")), List.<JCExpression>of(maker.Ident(param.name)));
-		JCBlock body = maker.Block(0, List.<JCStatement>of(maker.Exec(addcall)));
-		JCMethodDecl method = maker.MethodDef(maker.Modifiers(Flags.PUBLIC), classnode.toName("add"), maker.TypeIdent(lombok.javac.Javac.CTC_VOID), List.<JCTypeParameter>nil(), List.<JCVariableDecl>of(param), List.<JCExpression>nil(), body, null);
+		JCVariableDecl param = maker.VarDef(maker.Modifiers(0), classnode.toName("son"), maker.Ident(classnode.toName(componentName)), null);
+		JCBlock body= null;
+		if(hasbody){
+			JCMethodInvocation addcall = maker.Apply(List.<JCExpression>nil(), maker.Select(maker.Ident(list.name), classnode.toName("add")), List.<JCExpression>of(maker.Ident(param.name)));
+			body = maker.Block(0, List.<JCStatement>of(maker.Exec(addcall)));
+				
+		}
+		JCMethodDecl method = maker.MethodDef(maker.Modifiers(Flags.PUBLIC), classnode.toName(methodAddName), maker.TypeIdent(lombok.javac.Javac.CTC_VOID), List.<JCTypeParameter>nil(), List.<JCVariableDecl>of(param), List.<JCExpression>nil(), body, null);
 		JediJavacUtil.injectMethod(classnode, method,annotationName);
 		
 	}

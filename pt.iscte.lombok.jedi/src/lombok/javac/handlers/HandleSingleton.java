@@ -24,7 +24,6 @@ package lombok.javac.handlers;
 import static lombok.javac.Javac.CTC_BOT;
 import static lombok.javac.Javac.CTC_EQUAL;
 import lombok.AccessLevel;
-import lombok.CompositeChildren;
 import lombok.Observable;
 import lombok.Singleton;
 import lombok.core.AST.Kind;

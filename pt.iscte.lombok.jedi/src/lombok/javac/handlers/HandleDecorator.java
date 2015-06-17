@@ -37,9 +37,8 @@ import java.lang.reflect.Modifier;
 import java.util.HashSet;
 
 import lombok.AccessLevel;
-import lombok.CompositeChildren;
 import lombok.Decorator;
-import lombok.VisitableType;
+import lombok.Visitor;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
 import lombok.javac.JavacAnnotationHandler;

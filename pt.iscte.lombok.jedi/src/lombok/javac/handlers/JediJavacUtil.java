@@ -45,6 +45,7 @@ import lombok.AccessLevel;
 import lombok.ConfigurationKeys;
 import lombok.Data;
 import lombok.Getter;
+import lombok.Observable;
 import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
 import lombok.core.LombokImmutableList;
@@ -128,7 +129,13 @@ public class JediJavacUtil {
 	}
 	static boolean isInterface(JavacNode typeNode){
 		JCClassDecl clazz = (JCClassDecl) typeNode.get();
-		return clazz.sym.isInterface();
+		try{
+			return clazz.sym.isInterface();
+		}catch(java.lang.NullPointerException e){
+			//return (clazz.sym.flags() )
+			return (clazz.getModifiers().flags&Flags.INTERFACE)!=0;
+		}
+		
 	}
 	private static class MarkingScanner extends TreeScanner {
 		private final JCTree source;
@@ -160,6 +167,24 @@ public class JediJavacUtil {
 		
 		
 		return first+""+rest;
+	}
+	static boolean methodExists(String methodname ,List<JCVariableDecl>parameters, JavacNode node) {
+		JCClassDecl annotatedclass = (JCClassDecl) node.get();
+		for (JCTree member : annotatedclass.getMembers()) {
+			if (member.getKind() == com.sun.source.tree.Tree.Kind.METHOD) {
+				JCMethodDecl method = (JCMethodDecl) member;
+				if (!method.getName().equals(node.toName("<init>"))) {
+					if (methodname.equals(method.getName().toString())
+							&& JediJavacUtil.parametersEquals(
+									parameters,
+									method.getParameters())) {
+						return true;
+					}
+
+				}
+			}
+		}
+		return false;
 	}
 	public static JCMethodDecl createConstructor(AccessLevel level, List<JCAnnotation> onConstructor, JavacNode typeNode, List<JavacNode> fields, Boolean suppressConstructorProperties, JavacNode source) {
 		JavacTreeMaker maker = typeNode.getTreeMaker();
@@ -1572,5 +1597,27 @@ public class JediJavacUtil {
 			docComments.put(to, filtered[0]);
 			docComments.put(from.get(), filtered[1]);
 		}
+	}
+	public static JavacNode interfaceExists(String listenerName,JavacNode clazznode) {
+		for (JavacNode subNode : clazznode.down()) {
+			if(subNode.getKind()==Kind.TYPE)
+			if(isInterface(subNode)){
+				if(subNode.getName().equals(listenerName)){
+					return subNode;
+				}
+			}
+		}
+		return null;
+	}
+	public static JCAnnotation varContainsAnnotation(
+			List<JCAnnotation> notifyannotations) {
+		String annName;
+		for (JCAnnotation ann : notifyannotations) {
+			annName=JediJavacUtil.removePrefixFromString(ann.annotationType.toString());
+			if(annName.equals(Observable.Notify.class.getSimpleName())){
+				return ann;
+			}
+		}
+		return null;
 	}
 }

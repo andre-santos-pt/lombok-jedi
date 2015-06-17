@@ -45,8 +45,6 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
 import lombok.AccessLevel;
-import lombok.CompositeChildren;
-import lombok.Singleton;
 import lombok.Wrapper;
 import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
@@ -227,7 +225,7 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 					arguments = new ListBuffer<JCExpression>();
 					drillIntoMethod(node,maker,classtype,member,exElem,parameters,arguments);
 					
-					if(!methodManuallyExists( member.name.toString(),parameters.toList(),node, maker)){
+					if(!JediJavacUtil.methodExists( member.name.toString(),parameters.toList(),node)){
 						JCExpression returnType=null;
 						try {
 							returnType = JavacResolution.typeToJCTree((Type) retn, node.getAst(), true);
@@ -345,26 +343,7 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 		return value;
 	}
 
-	private static boolean methodManuallyExists(String methodname ,List<JCVariableDecl>parameters, JavacNode node,
-			JavacTreeMaker maker) {
-		JCClassDecl annotatedclass = (JCClassDecl) node.get();
-		for (JCTree member : annotatedclass.getMembers()) {
-			if (member.getKind() == com.sun.source.tree.Tree.Kind.METHOD) {
-				JCMethodDecl method = (JCMethodDecl) member;
-				if (!method.getName().equals(node.toName("<init>"))) {
-					if (methodname.equals(method.getName().toString())
-							&& JediJavacUtil.parametersEquals(
-									parameters,
-									method.getParameters())) {
-						return true;
-					}
-
-				}
-			}
-		}
-		return false;
-	}
-
+	
 
 
 	

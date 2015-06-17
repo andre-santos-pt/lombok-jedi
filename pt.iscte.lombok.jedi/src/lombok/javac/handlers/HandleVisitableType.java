@@ -22,8 +22,7 @@
 package lombok.javac.handlers;
 
 import static lombok.javac.Javac.CTC_BOOLEAN;
-import lombok.CompositeChildren;
-import lombok.VisitableType;
+import lombok.Visitor;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
 import lombok.javac.Javac;
@@ -50,10 +49,10 @@ import com.sun.tools.javac.util.List;
 @ProviderFor(JavacAnnotationHandler.class)
 @ResolutionResetNeeded
 @HandlerPriority(3)
-public class HandleVisitableType extends JavacAnnotationHandler<VisitableType> {
+public class HandleVisitableType extends JavacAnnotationHandler<Visitor> {
 	
 	
-	@Override public void handle(AnnotationValues<VisitableType> annotation, JCAnnotation ast, JavacNode annotationNode) {
+	@Override public void handle(AnnotationValues<Visitor> annotation, JCAnnotation ast, JavacNode annotationNode) {
 		JavacNode typeNode = annotationNode.up();
 		JavacTreeMaker maker = typeNode.getTreeMaker();
 		JCClassDecl visitorInterface = maker.ClassDef(
@@ -63,7 +62,7 @@ public class HandleVisitableType extends JavacAnnotationHandler<VisitableType> {
 				null, 
 				List.<JCExpression>nil(), 
 				List.<JCTree>nil());
-		String annotationName= VisitableType.class.getName();
+		String annotationName= Visitor.class.getName();
 		JavacNode visitorType = JediJavacUtil.injectType(typeNode, visitorInterface,annotationName);
 		
 		JCClassDecl clazz = (JCClassDecl) annotationNode.up().get();
