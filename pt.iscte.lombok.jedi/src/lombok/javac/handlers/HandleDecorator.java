@@ -181,7 +181,6 @@ public class HandleDecorator extends JavacAnnotationHandler<Decorator> {
 	}
 	
 	private void handleMethods(JavacNode clazznode, JavacTreeMaker maker, JCClassDecl clazz, JavacNode fieldNode,String annotationName) {
-		Name fieldName = JediJavacUtil.removePrefixFromField(fieldNode);
 		Types types = Types.instance(clazznode.getAst().getContext());
 		
 		Type type = clazz.sym.type;

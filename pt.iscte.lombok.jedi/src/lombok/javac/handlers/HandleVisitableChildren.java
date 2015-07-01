@@ -62,15 +62,6 @@ public class HandleVisitableChildren extends JavacAnnotationHandler<Children> {
 		
 		JCClassDecl parentClass = (JCClassDecl) typeNode.up().get();
 		boolean isVisitableNode=false;
-//		Types types = Types.instance(typeNode.getContext());
-//		for (JavacNode subnode : typeNode.up().down()) {
-//			if(subnode.getKind()==Kind.ANNOTATION){
-//				JCAnnotation ann =(JCAnnotation)subnode.get();
-//				if(ann.annotationType.toString().equals("VisitableNode")){
-//					isVisitableNode=true;
-//				}
-//			}
-//		}
 		Types types = Types.instance(typeNode.getAst().getContext());
 		Type type = parentClass.sym.type;
 		

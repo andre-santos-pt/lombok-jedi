@@ -1,27 +1,8 @@
-/*
- * Copyright 2010-2015 The Project Lombok Authors.
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * 
- * The above Copyrightice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR CopyrightDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
+
 package lombok.javac.handlers;
 
 import static lombok.javac.Javac.CTC_BOOLEAN;
+import lombok.Singleton;
 import lombok.Visitor;
 import lombok.core.AnnotationValues;
 import lombok.core.HandlerPriority;
@@ -50,18 +31,24 @@ import com.sun.tools.javac.util.List;
 @ResolutionResetNeeded
 @HandlerPriority(3)
 public class HandleVisitableType extends JavacAnnotationHandler<Visitor> {
-	
+	private static final List<JCExpression> NIL_EXPRESSION = List.nil();
+	private static final List<JCTree> NIL_TREE= List.nil();
 	
 	@Override public void handle(AnnotationValues<Visitor> annotation, JCAnnotation ast, JavacNode annotationNode) {
 		JavacNode typeNode = annotationNode.up();
 		JavacTreeMaker maker = typeNode.getTreeMaker();
+		Visitor annotationInstance=  annotation.getInstance();
+		String visitorMethodNname = annotationInstance.visitorMethodName();
+		String acceptMethodName= annotationInstance.acceptMethodName();
+
+		
 		JCClassDecl visitorInterface = maker.ClassDef(
 				maker.Modifiers(Flags.PUBLIC | Flags.STATIC | Flags.ABSTRACT), 
 				typeNode.toName(annotation.getInstance().visitorTypeName()),
 				List.<JCTypeParameter>nil(),
 				null, 
-				List.<JCExpression>nil(), 
-				List.<JCTree>nil());
+				NIL_EXPRESSION, 
+				NIL_TREE);
 		String annotationName= Visitor.class.getName();
 		JavacNode visitorType = JediJavacUtil.injectType(typeNode, visitorInterface,annotationName);
 		
@@ -69,45 +56,30 @@ public class HandleVisitableType extends JavacAnnotationHandler<Visitor> {
 		Type type = clazz.sym.type;
 		
 		if(!JediJavacUtil.isAbstractType(typeNode))
-			addVisitMethod(maker, typeNode, visitorType, type,annotationName);
+			addVisitMethod(maker, typeNode, visitorType, type,visitorMethodNname,annotationName);
 		
 		for(Type s : HandleVisitableNode.getVisitorNodes(type.toString()))
-			addVisitMethod(maker, typeNode, visitorType, s,annotationName);
+			addVisitMethod(maker, typeNode, visitorType, s,visitorMethodNname,annotationName);
 		
 		String visitorTypeName = type.toString() + "." + annotation.getInstance().visitorTypeName();
 
 		
-		HandleVisitableNode.injectAcceptMethod(typeNode, maker, type, visitorTypeName,annotationName);
+		HandleVisitableNode.injectAcceptMethod(typeNode, maker, type, visitorTypeName,visitorMethodNname,acceptMethodName,annotationName);
 	}
 	
 	
 	
-	private void addVisitMethod(JavacTreeMaker maker, JavacNode parent, JavacNode visitorType, Type s,String annotationName) {
+	private void addVisitMethod(JavacTreeMaker maker, JavacNode parent, JavacNode visitorType, Type s,String visitMethodName,String annotationName) {
 		JCVariableDecl param = maker.VarDef(maker.Modifiers(Flags.PARAMETER),
 				parent.toName("node"), 
-//				JavacHandlerUtil.chainDotsString(visitorType, s.toString()),
 				maker.Ident(visitorType.toName(s.toString())),
 				null);		
 		
 		JCStatement returnStatement = maker.Return(maker.Literal(CTC_BOOLEAN, 1));
 		JCBlock block = maker.Block(0, List.of(returnStatement));
-		
-		JCMethodDecl visitMethod = maker.MethodDef(
-				maker.Modifiers(Flags.PUBLIC),
-				visitorType.toName("visit"),
-				maker.TypeIdent(Javac.CTC_BOOLEAN), 
-				List.<JCTypeParameter>nil(), 
-				List.of(param), 
-				List.<JCExpression>nil(), 
-				block,
-				null);
+		JCMethodDecl visitMethod = JediJavacUtil.createMethod(maker, maker.Modifiers(Flags.PUBLIC), visitorType.toName(visitMethodName), maker.TypeIdent(Javac.CTC_BOOLEAN), List.of(param), block);
 		
 		JediJavacUtil.injectMethod(visitorType, visitMethod,annotationName);
 	}
-	
-	
-	//	static Name getVisitorTypeName() {
-	//		
-	//	}
 	
 }

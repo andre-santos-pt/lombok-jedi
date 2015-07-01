@@ -6,7 +6,6 @@ import static lombok.javac.Javac.CTC_EQUAL;
 import static lombok.javac.Javac.CTC_NOT;
 
 import java.util.regex.Pattern;
-
 import lombok.AccessLevel;
 import lombok.Flyweight;
 import lombok.core.AnnotationValues;
@@ -52,35 +51,35 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 		String type=treetype.toString();
 				
 				if(int.class.getName().contains(type)){
-					return handleArrayType(node,maker,Integer.class);
+					return JediJavacUtil.handleArrayType(node,maker,Integer.class);
 				}
 				
 				if(double.class.getName().contains(type)){
-					return handleArrayType(node,maker,Double.class);
+					return JediJavacUtil.handleArrayType(node,maker,Double.class);
 				}
 				
 				if(float.class.getName().contains(type)){
-					return handleArrayType(node,maker,Float.class);
+					return JediJavacUtil.handleArrayType(node,maker,Float.class);
 				}
 				
 				if(short.class.getName().contains(type)){
-					return handleArrayType(node,maker,Short.class);
+					return JediJavacUtil.handleArrayType(node,maker,Short.class);
 				}
 				
 				if(byte.class.getName().contains(type)){
-					return handleArrayType(node,maker,Byte.class);
+					return JediJavacUtil.handleArrayType(node,maker,Byte.class);
 				}
 				
 				if(long.class.getName().contains(type)){
-					return handleArrayType(node,maker,Long.class);
+					return JediJavacUtil.handleArrayType(node,maker,Long.class);
 				}
 				
 				if(boolean.class.getName().contains(type)){
-					return handleArrayType(node,maker,Boolean.class);
+					return JediJavacUtil.handleArrayType(node,maker,Boolean.class);
 				}
 				
 				if(char.class.getName().contains(type)){
-					return handleArrayType(node,maker,Character.class);
+					return JediJavacUtil.handleArrayType(node,maker,Character.class);
 				}
 				
 				return (JCExpression)treetype ;
@@ -90,7 +89,8 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 	@Override public void handle(AnnotationValues<Flyweight> annotation, JCAnnotation ast, JavacNode node) {
 		String annotationName=Flyweight.class.getName();
 		JavacTreeMaker maker = node.up().getTreeMaker();
-		if(((JCClassDecl)node.up().get()).sym.isInterface()){
+		JCClassDecl classdecl=(JCClassDecl)node.up().get();
+		if(classdecl.sym.isInterface()){
 			node.addError("@Flyweight can not be used on Interfaces.");
 		}
 		if(JediJavacUtil.isAbstractType(node.up())){
@@ -112,14 +112,11 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 		if(annotation.getInstance().factory()){
 			ListBuffer<JCVariableDecl> flyweightIntrinsic = new ListBuffer<JCVariableDecl>();
 			notificationValitations(flyweightIntrinsic, maker, node);
-			JCBlock body;
-			JCMethodDecl verifywiththis;
+			JCBlock body = null;
+			
 			switch(annotation.getInstance().factoryType()){
 			case 0:
 				body = defineSecondaryFactory(node, maker,flyweightIntrinsic,annotationName);
-				verifywiththis = JediJavacUtil.recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC|Flags.STATIC), node.toName("getInstance") ,maker.Ident(((JCClassDecl)node.up().get()).name),
-						List.<JCTypeParameter>nil(),flyweightIntrinsic.toList().reverse(), List.<JCExpression>nil(), body, null), node.up().get(), node.up().getContext());
-				JediJavacUtil.injectMethod(node.up(), verifywiththis,annotationName);
 			break;
 			case 1:
 				createFieldMapOfMaps(node, maker, flyweightIntrinsic,annotationName);
@@ -128,27 +125,17 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 
 				creatingIfLevels(node, flyweightIntrinsic, maker, statements);
 				gettingObject(node, flyweightIntrinsic.toList(), maker, statements);
-				
-				//verify that sends the subject to the observer
 				body=maker.Block(0, statements.toList());
-					
-				verifywiththis = JediJavacUtil.recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC|Flags.STATIC), node.toName("getInstance") ,maker.Ident(((JCClassDecl)node.up().get()).name),
-				List.<JCTypeParameter>nil(),flyweightIntrinsic.toList().reverse(), List.<JCExpression>nil(), body, null), node.up().get(), node.up().getContext());
-				JediJavacUtil.injectMethod(node.up(), verifywiththis,annotationName);	
 			break;
 			default:
 				node.addError("The value of factoryType can only be 0 or 1");
 			break;
 			}
-
+			JCMethodDecl verifywiththis = JediJavacUtil.createMethod(maker, maker.Modifiers(Flags.PUBLIC|Flags.STATIC), node.toName("getInstance"), maker.Ident(classdecl.name), flyweightIntrinsic.toList().reverse(), body);
+			JediJavacUtil.injectMethod(node.up(), verifywiththis,annotationName);	
 			
 		}
 		
-
-		//new HandleFieldDefaults().generateFieldDefaultsForType(node.up(), node, AccessLevel.PRIVATE, true, true);
-		
-		// TODO move this to the end OR move it to the top in eclipse.
-		//new HandleConstructor().generateAllArgsConstructor(node.up(), AccessLevel.PRIVATE, "", SkipIfConstructorExists.NO, node);
 		new HandleGetter().generateGetterForType(node.up(), node, AccessLevel.PUBLIC, true);
 		new HandleEqualsAndHashCode().generateEqualsAndHashCodeForType(node.up(), node);
 		new HandleToString().generateToStringForType(node.up(), node);
@@ -215,7 +202,7 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 		ListBuffer<JCExpression> args = new ListBuffer<JCExpression>(); 
 		args.add(maker.Ident(((JCClassDecl) node.up().get()).name));
 		args.add(maker.Ident(((JCClassDecl) node.up().get()).name));
-		JCExpression hashfield= maker.TypeApply(handleArrayType(node, maker, java.util.HashMap.class),args.toList());
+		JCExpression hashfield= maker.TypeApply(JediJavacUtil.handleArrayType(node, maker, java.util.HashMap.class),args.toList());
 		
 		JCNewClass fieldinit = maker.NewClass(null, List.<JCExpression>nil(), hashfield, NIL_EXPRESSION, null);
 		//defining the field 
@@ -364,28 +351,10 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 			else
 				typeargs.add(flyobjects.get(0).vartype);
 		}
-		return maker.TypeApply(handleArrayType(node, maker, java.util.HashMap.class),typeargs.toList());
+		return maker.TypeApply(JediJavacUtil.handleArrayType(node, maker, java.util.HashMap.class),typeargs.toList());
 	}
 
-	private JCExpression handleArrayType(JavacNode node, JavacTreeMaker maker, Class<?> clazz) {
-		int n = 0;
-		while(clazz.isArray()) {
-			clazz = clazz.getComponentType();
-			n++;
-		}
-		
-		//		String typeName = clazz.isArray() ? clazz.getComponentType().getName() : ;
-		JCExpression type = JediJavacUtil.genTypeRef(node.up(), clazz.getName());
-		
-		while(n > 0) {
-			type = maker.TypeArray(type);
-			n--;
-		}
-		
-		//		if(clazz.isArray())
-		//			type = maker.TypeArray(type);
-		return type;
-	}	
+
 }
 
 

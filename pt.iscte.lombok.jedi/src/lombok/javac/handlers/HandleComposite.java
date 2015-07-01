@@ -66,24 +66,6 @@ public class HandleComposite extends JavacAnnotationHandler<Composite> {
 
 		JCClassDecl clazz = (JCClassDecl) annotationNode.up().get();
 		Types types = Types.instance(typeNode.getAst().getContext());
-		/*
-		//int count=0;
-		for (JavacNode subnode : annotationNode.up().down()) {
-			if(subnode.getKind().equals(Kind.FIELD)){
-				for (JavacNode fieldannotations : subnode.down()) {
-					if(fieldannotations.getKind().equals(Kind.ANNOTATION)){
-						JCAnnotation ann= (JCAnnotation)fieldannotations.get();
-						System.out.println(ann.type.toString());
-						System.out.println(Composite.Children.class.getName());
-						if(ann.type.toString().equals(Composite.Children.class.getName())){
-							//count++;
-						}
-					}
-				}
-
-			}
-		}
-		*/
 		int count=0;
 		for (JavacNode subnode : annotationNode.up().down()) {
 			if(subnode.getKind().equals(Kind.FIELD)){
@@ -91,18 +73,7 @@ public class HandleComposite extends JavacAnnotationHandler<Composite> {
 				Children fieldType = var.sym.getAnnotation(Composite.Children.class);
 				if(fieldType!= null){
 					count++;
-				}
-//				closure = types.closure(fieldType);
-//				for(Type s : closure) {
-//					ClassType ct = (ClassType) s;
-//
-//					Composite.Children ann = ct.tsym.getAnnotation(Composite.Children.class);
-//					if(ann != null) {
-//System.out.println("existe anitacao ");
-//						count++;
-//					}
-//				}
-				
+				}				
 			}
 		}
 		if(count>0){

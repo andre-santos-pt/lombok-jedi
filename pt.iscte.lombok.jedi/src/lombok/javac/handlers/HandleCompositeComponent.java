@@ -41,6 +41,7 @@ import com.sun.tools.javac.util.ListBuffer;
 @ProviderFor(JavacAnnotationHandler.class)
 public class HandleCompositeComponent extends JavacAnnotationHandler<Composite.Component> {
 	private static final List<JCExpression> NIL_EXPRESSION = List.nil();
+	private static final List<JCVariableDecl> NIL_VARIABLEDECL= List.nil();
 	
 	@Override public void handle(AnnotationValues<Composite.Component> annotation, JCAnnotation ast, JavacNode annotationNode) {
 		JavacNode typeNode = annotationNode.up();
@@ -160,8 +161,9 @@ public class HandleCompositeComponent extends JavacAnnotationHandler<Composite.C
 		body= maker.Block(0, List.<JCStatement>of(statement));
 		}
 		
-		JCMethodDecl getParent=maker.MethodDef(maker.Modifiers(Flags.PUBLIC),node.toName(methodname) , maker.Ident(composite.name), 
-				List.<JCTypeParameter>nil(), List.<JCVariableDecl>nil(), List.<JCExpression>nil(),body, null);
+//		JCMethodDecl getParent=maker.MethodDef(maker.Modifiers(Flags.PUBLIC),node.toName(methodname) , maker.Ident(composite.name), 
+//				List.<JCTypeParameter>nil(), List.<JCVariableDecl>nil(), List.<JCExpression>nil(),body, null);
+		JCMethodDecl getParent= JediJavacUtil.createMethod(maker, maker.Modifiers(Flags.PUBLIC), node.toName(methodname), maker.Ident(composite.name), NIL_VARIABLEDECL, body);
 		JediJavacUtil.injectMethod(node.up(),getParent,annotationName);
 		
 	}

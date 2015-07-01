@@ -41,6 +41,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+
 import lombok.AccessLevel;
 import lombok.ConfigurationKeys;
 import lombok.Data;
@@ -63,6 +66,8 @@ import lombok.javac.handlers.JavacHandlerUtil;
 
 import com.sun.tools.javac.code.BoundKind;
 import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.code.Symbol;
+import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.parser.Tokens.Comment;
 import com.sun.tools.javac.tree.DocCommentTable;
 import com.sun.tools.javac.tree.JCTree;
@@ -100,6 +105,9 @@ import com.sun.tools.javac.util.Options;
  * Container for static utility methods useful to handlers written for javac.
  */
 public class JediJavacUtil {
+	private static final List<JCExpression> NIL_EXPRESSION = List.nil();
+	private static final List<JCVariableDecl> NIL_VARIABLEDECL= List.nil();
+	private static final List<JCTypeParameter> NIL_TYPEPARAMETER=List.nil();
 	private JediJavacUtil() {
 		//Prevent instantiation
 	}
@@ -168,12 +176,12 @@ public class JediJavacUtil {
 		
 		return first+""+rest;
 	}
-	static boolean methodExists(String methodname ,List<JCVariableDecl>parameters, JavacNode node) {
-		JCClassDecl annotatedclass = (JCClassDecl) node.get();
+	static boolean methodExists(String methodname ,List<JCVariableDecl>parameters, JavacNode classNode) {
+		JCClassDecl annotatedclass = (JCClassDecl) classNode.get();
 		for (JCTree member : annotatedclass.getMembers()) {
 			if (member.getKind() == com.sun.source.tree.Tree.Kind.METHOD) {
 				JCMethodDecl method = (JCMethodDecl) member;
-				if (!method.getName().equals(node.toName("<init>"))) {
+				if (!method.getName().equals(classNode.toName("<init>"))) {
 					if (methodname.equals(method.getName().toString())
 							&& JediJavacUtil.parametersEquals(
 									parameters,
@@ -889,7 +897,7 @@ public class JediJavacUtil {
 	 * Also takes care of updating the JavacAST.
 	 */
 
-
+	
 	public static JavacNode injectField(JavacNode typeNode, JCVariableDecl field, String name) {
 		JCClassDecl type = (JCClassDecl) typeNode.get();
 		
@@ -920,6 +928,95 @@ public class JediJavacUtil {
 		}
 		
 		return typeNode.add(field, Kind.FIELD);
+	}
+	public static Symbol findMethod(JavacNode node,
+			ListBuffer<JCVariableDecl> notifiable, JavacTreeMaker maker,
+			Object obj, String listenermethod) {
+		ArrayList<Symbol> method = new ArrayList<Symbol>();
+		boolean nameSet = false;
+		if (!listenermethod.equals("") && listenermethod != null) {
+			nameSet = true;
+		}
+		if (obj != null)
+			if (!obj.equals(void.class)) {
+				JCFieldAccess field = (JCFieldAccess) obj;
+				Type interfacetype = field.selected.type;
+
+				if (!interfacetype.tsym.isInterface()) {
+					node.addError("The value of the atribute type can only be an interface.");
+				} else {
+					for (Symbol member : interfacetype.tsym
+							.getEnclosedElements()) {
+
+						ExecutableElement exElem = (ExecutableElement) member;
+						if (member.getKind().equals(ElementKind.METHOD)
+								&& exElem
+										.getModifiers()
+										.contains(
+												javax.lang.model.element.Modifier.PUBLIC)) {
+
+							ListBuffer<JCVariableDecl> parameters = new ListBuffer<JCVariableDecl>();
+							ListBuffer<JCExpression> arguments = new ListBuffer<JCExpression>();
+
+							HandleWrapper.drillIntoMethod(node, maker,
+									interfacetype, member, exElem, parameters,
+									arguments);
+							if (nameSet) {
+								if (JediJavacUtil.parametersEquals(
+										parameters.toList(),
+										notifiable.toList())
+										&& listenermethod.equals(member
+												.getSimpleName().toString()))
+									method.add(member);
+							} else {
+								if (JediJavacUtil.parametersEquals(
+										parameters.toList(),
+										notifiable.toList()))
+									method.add(member);
+							}
+
+						}
+					}
+
+				}
+
+			}
+		if (method.size() > 1) {
+			node.addError("Multiple possible methods found."
+					+ method.toString());
+			return null;
+		}
+
+		if (method.size() == 0) {
+			String types = "";
+			int pos = 0;
+			for (JCVariableDecl var : notifiable) {
+				types = types + "" + var.vartype.toString();
+				if (pos < notifiable.size() - 2)
+					types = types + ",";
+			}
+			node.addError("The interface contains no method with the argument types ("
+					+ types + ")");
+			return null;
+		}
+		return method.get(0);
+	}
+	public static JCExpression handleArrayType(JavacNode node, JavacTreeMaker maker,
+			Class<?> clazz) {
+		int n = 0;
+		while (clazz.isArray()) {
+			clazz = clazz.getComponentType();
+			n++;
+		}
+		JCExpression type = JediJavacUtil
+				.genTypeRef(node, clazz.getName());
+
+		while (n > 0) {
+			type = maker.TypeArray(type);
+			n--;
+		}
+
+		return type;
 	}
 	
 	public static boolean isEnumConstant(final JCVariableDecl field) {
@@ -1619,5 +1716,10 @@ public class JediJavacUtil {
 			}
 		}
 		return null;
+	}
+	public static JCMethodDecl createMethod(JavacTreeMaker maker, JCModifiers modifiers,
+			Name methodname, JCExpression returnType, List<JCVariableDecl> parameters, JCBlock body) {
+		return  maker.MethodDef(modifiers, methodname , returnType,
+				NIL_TYPEPARAMETER, parameters, NIL_EXPRESSION, body, null);
 	}
 }

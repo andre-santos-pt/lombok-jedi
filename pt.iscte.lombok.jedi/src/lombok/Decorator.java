@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
  * <p><ul>
  * <li>local field that will store the annotated interface
  * <li>public constructor that will receive the interface
- * <li>all the public methods, the interface has.
+ * <li>all the public methods the interface has.
  * </ul><p> 
  * </ul><p>
 

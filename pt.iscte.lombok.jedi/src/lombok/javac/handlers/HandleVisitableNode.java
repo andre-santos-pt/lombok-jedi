@@ -1,24 +1,4 @@
-/*
- * Copyright 2010-2015 The Project Lombok Authors.
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * 
- * The above Copyrightice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR CopyrightDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
+
 package lombok.javac.handlers;
 
 import static lombok.javac.Javac.CTC_VOID;
@@ -74,27 +54,7 @@ public class HandleVisitableNode extends JavacAnnotationHandler<Visitor.Node> {
 		JavacTreeMaker maker = typeNode.getTreeMaker();
 		Types types = Types.instance(typeNode.getAst().getContext());
 		
-		JCClassDecl clazz = (JCClassDecl) annotationNode.up().get();
-		int count=0;
-		for (JavacNode subnode : annotationNode.up().down()) {
-			if(subnode.getKind().equals(Kind.FIELD)){
-				for (JavacNode fieldannotations : subnode.down()) {
-					if(fieldannotations.getKind().equals(Kind.ANNOTATION)){
-						JCAnnotation ann= (JCAnnotation)fieldannotations.get();
-						if(ann.type.toString().equals(Visitor.Children.class.getName())){
-						
-							count++;
-							
-						}
-					}
-				}
-
-			}
-		}
-		if(count>1){
-			typeNode.addError("Cannot have more than one field annotated with @"+Visitor.Children.class.getSimpleName());
-		}else{
-			
+		JCClassDecl clazz = (JCClassDecl) annotationNode.up().get();			
 			Type type = clazz.sym.type;
 			
 			List<Type> closure = types.closure(type);
@@ -104,22 +64,21 @@ public class HandleVisitableNode extends JavacAnnotationHandler<Visitor.Node> {
 				Visitor ann = ct.tsym.getAnnotation(Visitor.class);
 				
 				if (ann != null) {
-					if (!subtypes.containsKey(ct.toString())) 
+					if(!JediJavacUtil.isAbstractType(annotationNode.up())){
+						if (!subtypes.containsKey(ct.toString())) 
 						subtypes.put(ct.toString(), new HashSet<Type>());
 					subtypes.get(ct.toString()).add(type);
+					}
+					
 					String visitorType = ct.toString() + "." + ann.visitorTypeName();
-					injectAcceptMethod(typeNode, maker, type, visitorType,Visitor.Node.class.getName());
+					injectAcceptMethod(typeNode, maker, type, visitorType,ann.visitorMethodName(),ann.acceptMethodName(),Visitor.Node.class.getName());
 					
 				}
 
 			}	
-	
-		}
-		
-		
 	}
 
-	static void injectAcceptMethod(JavacNode typeNode, JavacTreeMaker maker, Type type, String visitorType,String annotationName) {
+	static void injectAcceptMethod(JavacNode typeNode, JavacTreeMaker maker, Type type, String visitorType,String visitorMethodName,String acceptVMethodName,String annotationName) {
 		boolean abstractType = JediJavacUtil.isAbstractType(typeNode);
 		boolean InterfaceTyoe= JediJavacUtil.isInterface(typeNode);
 		Types types = Types.instance(typeNode.getAst().getContext());
@@ -130,7 +89,7 @@ public class HandleVisitableNode extends JavacAnnotationHandler<Visitor.Node> {
 		JCBlock bodyBlock = null;
 		
 		if (!abstractType && !InterfaceTyoe) {
-			JCExpression callVisit = maker.Apply(List.<JCExpression>nil(), maker.Select(maker.Ident(param.getName()), typeNode.toName("visit")), List.<JCExpression>of(maker.Ident(typeNode.toName("this"))));
+			JCExpression callVisit = maker.Apply(List.<JCExpression>nil(), maker.Select(maker.Ident(param.getName()), typeNode.toName(visitorMethodName)), List.<JCExpression>of(maker.Ident(typeNode.toName("this"))));
 			
 			JCStatement statement = null;
 			
@@ -142,14 +101,12 @@ public class HandleVisitableNode extends JavacAnnotationHandler<Visitor.Node> {
 					
 					List<Type> closure = types.closure(field.sym.type);
 					if (!HandleCompositeChildren.iscollection(closure)) {
-						JCExpression callAccept = maker.Apply(List.<JCExpression>nil(), maker.Select(maker.Ident(field.name), typeNode.toName("accept")), List.<JCExpression>of(maker.Ident(typeNode.toName("visitor"))));
+						JCExpression callAccept = maker.Apply(List.<JCExpression>nil(), maker.Select(maker.Ident(field.name), typeNode.toName(acceptVMethodName)), List.<JCExpression>of(maker.Ident(typeNode.toName("visitor"))));
 						statementsList.add(maker.Exec(callAccept));
 					}else{
 						Type collectionType = field.sym.type.getTypeArguments().get(0);
 						JCVariableDecl var = maker.VarDef(maker.Modifiers(0), itVarName, maker.Ident(typeNode.toName(collectionType.toString())), null);
-						// JCVariableDecl var = maker.VarDef(maker.Modifiers(0),
-						// itVarName, maker.Type(collectionType), null);
-						JCExpression callAccept = maker.Apply(List.<JCExpression>nil(), maker.Select(maker.Ident(itVarName), typeNode.toName("accept")), List.<JCExpression>of(maker.Ident(typeNode.toName("visitor"))));
+						JCExpression callAccept = maker.Apply(List.<JCExpression>nil(), maker.Select(maker.Ident(itVarName), typeNode.toName(acceptVMethodName)), List.<JCExpression>of(maker.Ident(typeNode.toName("visitor"))));
 						
 						JCEnhancedForLoop loop = maker.ForeachLoop(var, maker.Ident(field), maker.Block(0, List.<JCStatement>of(maker.Exec(callAccept))));
 						
@@ -165,13 +122,7 @@ public class HandleVisitableNode extends JavacAnnotationHandler<Visitor.Node> {
 			bodyBlock = maker.Block(0, List.<JCStatement>of(statement));
 		}
 		
-		JCMethodDecl acceptMethod = maker.MethodDef(maker.Modifiers(abstractType ? Flags.PUBLIC | Flags.ABSTRACT : Flags.PUBLIC), typeNode.toName("accept"),
-		// maker.Type(Javac.createVoidType(maker, CTC_VOID)),
-				maker.TypeIdent(CTC_VOID), List.<JCTypeParameter>nil(), List.of(param), List.<JCExpression>nil(), bodyBlock, null);
-		
+		JCMethodDecl acceptMethod =JediJavacUtil.createMethod(maker, maker.Modifiers(abstractType ? Flags.PUBLIC | Flags.ABSTRACT : Flags.PUBLIC), typeNode.toName(acceptVMethodName), maker.TypeIdent(CTC_VOID),  List.of(param), bodyBlock);
 		JediJavacUtil.injectMethod(typeNode, acceptMethod,annotationName);
 	}
-	
-	
-	
 }

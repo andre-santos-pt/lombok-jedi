@@ -80,7 +80,6 @@ public class HandleCompositeLeaf extends JavacAnnotationHandler<Composite.Leaf> 
 				if (ann != null) {
 					injectOnConstructor(maker, annotationNode, s, annotationNode.up(), ct);
 				}
-				// injectOnConstructor(maker,typenode);
 				
 			}	
 		}

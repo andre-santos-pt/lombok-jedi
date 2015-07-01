@@ -248,8 +248,8 @@ public class HandleWrapper extends JavacAnnotationHandler<Wrapper> {
 						
 						body = maker.Block(0, stats.toList());
 						}
-						JCMethodDecl method= maker.MethodDef(maker.Modifiers(Flags.PUBLIC),  member.name, returnType, List.<JCTypeParameter>nil(), parameters.toList(), List.<JCExpression>nil(), body, null);
-				
+						//JCMethodDecl method= maker.MethodDef(maker.Modifiers(Flags.PUBLIC),  member.name, returnType, List.<JCTypeParameter>nil(), parameters.toList(), List.<JCExpression>nil(), body, null);
+						JCMethodDecl method= JediJavacUtil.createMethod(maker, maker.Modifiers(Flags.PUBLIC), member.name, returnType, parameters.toList(), body);
 						JediJavacUtil.injectMethod(node, method,annotationName);	
 					}	
 				}

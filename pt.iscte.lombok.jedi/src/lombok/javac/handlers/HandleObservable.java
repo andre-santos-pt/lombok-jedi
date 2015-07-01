@@ -70,13 +70,13 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 	@Override
 	public void handle(AnnotationValues<Observable> annotation,
 			JCAnnotation ast, JavacNode node) {
+		JavacNode methodNode=node.up();
 		ArrayList<String> customNotifiableNames = new ArrayList<String>();
 		ListBuffer<JCVariableDecl> notifiable = new ListBuffer<JCVariableDecl>();
-		JavacTreeMaker maker = node.up().getTreeMaker();
+		JavacTreeMaker maker = node.getTreeMaker();
 		Observable annotationInstance = annotation.getInstance();
 		String annotationName = Observable.class.getName();
 		boolean validationisafter = annotationInstance.after();
-		// Class<?> customInterface = annotationInstance.type();
 		Object obj = annotation.getActualExpression("type");
 		String listenermethod = annotationInstance.operation();
 		String listenername = annotationInstance.typeName();
@@ -85,19 +85,19 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 		String removeMethodName = annotationInstance.removeMethodName();
 		boolean interfDefined = false;
 		boolean customInfetfDefined = false;
-		notificationValitations(maker, validationisafter, node.up(),
+		notificationValitations(maker, validationisafter, methodNode,
 				notifiable, customNotifiableNames);
 		if (obj != null && !obj.equals(void.class)) {
 			customInfetfDefined = true;
 
 		}
 		if (fieldName == null || fieldName.equals("")) {
-			fieldName = fieldName + node.up().getName() + "Listeners";
+			fieldName = fieldName + methodNode.getName() + "Listeners";
 
 		}
 		if (listenername == null || listenername.equals("")) {
 			listenername = listenername
-					+ JediJavacUtil.firstToUpper(node.up().getName())
+					+ JediJavacUtil.firstToUpper(methodNode.getName())
 					+ "Listener";
 			if (!customInfetfDefined) {
 				interfDefined = true;
@@ -106,18 +106,18 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 			interfDefined = true;
 		}
 
-		JCMethodDecl annotatedmethod = (JCMethodDecl) node.up().get();
+		JCMethodDecl annotatedmethod = (JCMethodDecl) methodNode.get();
 		JavacNode fieldNode;
 		if (interfDefined != customInfetfDefined) {
 			if (interfDefined) {
 				if (listenermethod.equals("") || listenermethod == null) {
 					listenermethod = "notify";
 				}
-				JavacNode interf = creatingInterfaceListener(node.up().up(),
+				JavacNode interf = creatingInterfaceListener(methodNode.up(),
 						listenername, maker, annotationName);
 				if (notifiable.size() > 0) {
 					
-					createMethodOnInterface( node.up().up(), listenermethod, annotationName,
+					createMethodOnInterface(listenermethod, annotationName,
 							interf, notifiable.toList(),customNotifiableNames);
 				}
 				fieldNode = creatingFieldAndMethods(node, maker,
@@ -126,7 +126,7 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 				notifyingObservers(node, notifiable, maker, validationisafter,
 						annotatedmethod, fieldNode, listenermethod, false);
 			} else {
-				Symbol method = findMethod(node, notifiable, maker, obj,
+				Symbol method = JediJavacUtil.findMethod(node, notifiable, maker, obj,
 						listenermethod);
 				JCFieldAccess field = (JCFieldAccess) obj;
 				Type type = field.selected.type;
@@ -152,10 +152,11 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 
 	}
 
-	private JavacNode creatingFieldAndMethods(JavacNode node,
+	private JavacNode creatingFieldAndMethods(JavacNode annotationNode,
 			JavacTreeMaker maker, String annotationName, String interfName,
 			String fieldName, String addMethodName, String removeMethodName) {
-		JavacNode fieldNode = checkCompatibility(node, interfName, fieldName);
+		JavacNode methodNode=annotationNode.up();
+		JavacNode fieldNode = checkCompatibility(methodNode, interfName, fieldName);
 		if (addMethodName == null || addMethodName.equals("")) {
 			addMethodName = "add"
 					+ JediJavacUtil.firstToUpper(JediJavacUtil
@@ -167,32 +168,29 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 							.removePrefixFromString(interfName));
 		}
 		if (fieldNode == null) {
-			fieldNode = creatinglocalfield(node, maker, interfName,
+			fieldNode = creatinglocalfield(annotationNode, maker, interfName,
 					annotationName, fieldName);
 			
 		}
-		JCVariableDecl arg = maker.VarDef(null, node.toName("listener"), maker.Ident(node.toName(interfName)), null);
-		if (!JediJavacUtil.methodExists(addMethodName,List.<JCVariableDecl>of(arg), node.up().up())) {
-			
-			createAddMethod(node, maker, interfName, annotationName,
-					fieldNode.getName());
+		JCVariableDecl arg = maker.VarDef(null, methodNode.toName("listener"), maker.Ident(methodNode.toName(interfName)), null);
+		if (!JediJavacUtil.methodExists(addMethodName,List.<JCVariableDecl>of(arg), methodNode.up())) {
+			createMethod(methodNode, maker, interfName, annotationName,
+					fieldNode.getName(),addMethodName);
 		}
-		if (!JediJavacUtil.methodExists(removeMethodName,List.<JCVariableDecl>of(arg),node.up().up())) {
-			createRemoveMethod(node, maker, interfName, annotationName,
-					fieldNode.getName());
+		if (!JediJavacUtil.methodExists(removeMethodName,List.<JCVariableDecl>of(arg),methodNode.up())) {
+			createMethod(methodNode, maker, interfName, annotationName,
+					fieldNode.getName(),removeMethodName);
 		}
 		return fieldNode;
 	}
 
 
 
-
-
-	private JavacNode checkCompatibility(JavacNode node, String interfName,
+	private JavacNode checkCompatibility(JavacNode methodNode, String interfName,
 			String fieldName) {
 
 		JavacNode fieldNode = null;
-			for (JavacNode subnode : node.up().up().down()) {
+			for (JavacNode subnode : methodNode.up().down()) {
 				if (subnode.getKind().equals(Kind.FIELD)) {
 					if (subnode.getName().equals(fieldName)) {
 
@@ -205,7 +203,7 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 								fieldNode = subnode;
 
 							} else {
-								node.addError("The field " + subnode.getName()
+								fieldNode.addError("The field " + subnode.getName()
 										+ " cannot store interfaces of type "
 										+ interfName);
 							}
@@ -216,97 +214,25 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 		return fieldNode;
 	}
 
-	private Symbol findMethod(JavacNode node,
-			ListBuffer<JCVariableDecl> notifiable, JavacTreeMaker maker,
-			Object obj, String listenermethod) {
-		ArrayList<Symbol> method = new ArrayList<Symbol>();
-		boolean nameSet = false;
-		if (!listenermethod.equals("") && listenermethod != null) {
-			nameSet = true;
-		}
-		if (obj != null)
-			if (!obj.equals(void.class)) {
-				JCFieldAccess field = (JCFieldAccess) obj;
-				Type interfacetype = field.selected.type;
 
-				if (!interfacetype.tsym.isInterface()) {
-					node.addError("The value of the atribute type can only be an interface.");
-				} else {
-					for (Symbol member : interfacetype.tsym
-							.getEnclosedElements()) {
-
-						ExecutableElement exElem = (ExecutableElement) member;
-						if (member.getKind().equals(ElementKind.METHOD)
-								&& exElem
-										.getModifiers()
-										.contains(
-												javax.lang.model.element.Modifier.PUBLIC)) {
-
-							ListBuffer<JCVariableDecl> parameters = new ListBuffer<JCVariableDecl>();
-							ListBuffer<JCExpression> arguments = new ListBuffer<JCExpression>();
-
-							HandleWrapper.drillIntoMethod(node, maker,
-									interfacetype, member, exElem, parameters,
-									arguments);
-							if (nameSet) {
-								if (JediJavacUtil.parametersEquals(
-										parameters.toList(),
-										notifiable.toList())
-										&& listenermethod.equals(member
-												.getSimpleName().toString()))
-									method.add(member);
-							} else {
-								if (JediJavacUtil.parametersEquals(
-										parameters.toList(),
-										notifiable.toList()))
-									method.add(member);
-							}
-
-						}
-					}
-
-				}
-
-			}
-		if (method.size() > 1) {
-			node.addError("Multiple possible methods found."
-					+ method.toString());
-			return null;
-		}
-
-		if (method.size() == 0) {
-			String types = "";
-			int pos = 0;
-			for (JCVariableDecl var : notifiable) {
-				types = types + "" + var.vartype.toString();
-				if (pos < notifiable.size() - 2)
-					types = types + ",";
-			}
-			node.addError("The interface contains no method with the argument types ("
-					+ types + ")");
-			return null;
-		}
-		return method.get(0);
-	}
-
-	private JavacNode creatinglocalfield(JavacNode methodNode,
+	private JavacNode creatinglocalfield(JavacNode annotationNode,
 			JavacTreeMaker maker, String interftype, String annotationName,
 			String fieldName) {
 
 		JCExpression Arraytype = maker.TypeApply(
-				handleArrayType(methodNode, maker, java.util.ArrayList.class),
-				List.<JCExpression> of(maker.Ident(methodNode
+				JediJavacUtil.handleArrayType(annotationNode, maker, java.util.ArrayList.class),
+				List.<JCExpression> of(maker.Ident(annotationNode
 						.toName(interftype))));
 		JCExpression listtype = maker.TypeApply(
-				handleArrayType(methodNode, maker, java.util.List.class), List
-						.<JCExpression> of(maker.Ident(methodNode
+				JediJavacUtil.handleArrayType(annotationNode, maker, java.util.List.class), List
+						.<JCExpression> of(maker.Ident(annotationNode
 								.toName(interftype))));
 		JCNewClass fieldinit = maker.NewClass(null, List.<JCExpression> nil(),
 				Arraytype, NIL_EXPRESSION, null);
 		JCVariableDecl field = maker.VarDef(
 				maker.Modifiers(Flags.PRIVATE | Flags.FINAL),
-				methodNode.toName(fieldName), listtype, fieldinit);
-		JavacNode fieldNode = JediJavacUtil.injectField(methodNode.up().up(),
+				annotationNode.toName(fieldName), listtype, fieldinit);
+		JavacNode fieldNode = JediJavacUtil.injectField(annotationNode.up().up(),
 				field, annotationName);
 		return fieldNode;
 	}
@@ -318,11 +244,8 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 		Name fieldName = fieldNode.toName(fieldNode.getName());
 		ListBuffer<JCStatement> statements;
 		statements = new ListBuffer<JCStatement>();
-		ListBuffer<JCExpressionStatement> step = new ListBuffer<JCExpressionStatement>(); // FOR
-																							// (_;_;X)
-		ListBuffer<JCStatement> init = new ListBuffer<JCStatement>(); // For (X
-																		// ; _ ;
-																		// _)
+		ListBuffer<JCExpressionStatement> step = new ListBuffer<JCExpressionStatement>(); 
+		ListBuffer<JCStatement> init = new ListBuffer<JCStatement>(); 
 		ListBuffer<JCExpression> parameters = new ListBuffer<JCExpression>();
 		// FOR (_ ; _.size(); _)
 		JCExpression sizecall = maker.Apply(
@@ -330,23 +253,16 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 				maker.Select(maker.Ident(fieldName),
 						methodNode.up().toName("size")),
 				List.<JCExpression> nil());
-		// For (X ; _ ; _)
 		JCStatement i = maker.VarDef(maker.Modifiers(0),
 				methodNode.toName("i"), maker.TypeIdent(CTC_INT),
-				maker.Literal(0)); // int i=0
+				maker.Literal(0));
 		init.add(i);
-		// For (_ ; X ; _)
 		JCExpression cond = maker.Binary(CTC_LESS_THAN,
-				maker.Ident(((JCVariableDecl) i).name), sizecall); // i<fieldName.size()
-		//
-		// FOR (_; _ ; X)
-		JCExpression stepleftside = maker.Ident(((JCVariableDecl) i).name); // i
+				maker.Ident(((JCVariableDecl) i).name), sizecall); 
+		JCExpression stepleftside = maker.Ident(((JCVariableDecl) i).name); 
 		JCExpression steprightside = maker.Binary(CTC_PLUS,
-				maker.Ident(((JCVariableDecl) i).name), maker.Literal(1)); // i
-																			// +1
-		JCAssign stepExpressions = maker.Assign(stepleftside, steprightside); // append(i)
-																				// com
-																				// (i+1)
+				maker.Ident(((JCVariableDecl) i).name), maker.Literal(1)); 
+		JCAssign stepExpressions = maker.Assign(stepleftside, steprightside); 
 		step.add(maker.Exec(stepExpressions));
 		if (argumentThis)
 			parameters.add(maker.Ident(methodNode.toName("this")));
@@ -463,128 +379,42 @@ public class HandleObservable extends JavacAnnotationHandler<Observable> {
 		return interfnode;
 	}
 
-	private void createMethodOnInterface(JavacNode clazzNode,
+	private void createMethodOnInterface(
 			String methodname, String annotationName, JavacNode interfnode,
 			List<JCVariableDecl> notifiable, ArrayList<String> customNames) {
-		JavacTreeMaker maker = clazzNode.getTreeMaker();
+		JavacTreeMaker maker = interfnode.getTreeMaker();
 		ListBuffer<JCVariableDecl> list = new ListBuffer<JCVariableDecl>();
-		JCClassDecl subject = (JCClassDecl) clazzNode.get();
-		//JCVariableDecl subjectdeclared = maker.VarDef(maker.Modifiers(0),
-		//		interfnode.toName("subject"), maker.Ident(subject.name), null);
 		for (int i = 0; i < notifiable.size(); i++) {
 			list.add(maker.VarDef(maker.Modifiers(0),
 					interfnode.toName(JediJavacUtil
 							.firstToUpper(customNames.get(i))), notifiable
 							.get(i).vartype, null));
 		}
-		JCMethodDecl verify = maker
-				.MethodDef(maker.Modifiers(0),
-						interfnode.toName(methodname),
-						maker.TypeIdent(CTC_VOID),
-						List.<JCTypeParameter> nil(), list.toList(),
-						List.<JCExpression> nil(), null, null);
-		// injecting the method in the interface
-		//verify.params = verify.params.prepend(subjectdeclared);
+		JCMethodDecl verify = JediJavacUtil.createMethod(maker, maker.Modifiers(0), interfnode.toName(methodname), maker.TypeIdent(CTC_VOID), list.toList(), null);
 		JediJavacUtil.injectMethod(interfnode, verify, annotationName);
 	}
 
 
-
-	private void createAddMethod(JavacNode node, JavacTreeMaker maker,
-			String interf, String annotationName, String fnameame) {
-		Name fieldName=node.toName(fnameame);
-		ListBuffer<JCVariableDecl> args = new ListBuffer<JCVariableDecl>();
-		ListBuffer<JCExpression> params = new ListBuffer<JCExpression>();
+	private void createMethod(JavacNode methodNode, JavacTreeMaker maker,
+			String interfName, String annotationName, String fieldName,
+			String methodName) {
+		ListBuffer<JCVariableDecl> params = new ListBuffer<JCVariableDecl>();
+		ListBuffer<JCExpression> paramsRef = new ListBuffer<JCExpression>();
 		ListBuffer<JCStatement> statements = new ListBuffer<JCStatement>();
-
-		Name argname = node.toName("listener");
-
-		// the argument from the method addMethodListener()
-
-		args.add(maker.VarDef(maker.Modifiers(0), argname,
-				maker.Ident(node.toName(interf)), null));
-		params.add(maker.Ident(argname));
-		//
-		// calling the method .add() from hashset
-
+		Name argname = methodNode.toName("listener");
+		params.add(maker.VarDef(maker.Modifiers(0), argname,
+				maker.Ident(methodNode.toName(interfName)), null));
+		paramsRef.add(maker.Ident(argname));
 		JCMethodInvocation fieldmethodcall = maker.Apply(NIL_EXPRESSION,
-				maker.Select(maker.Ident(fieldName), node.up().toName("add")),
-				params.toList());
-		statements.add(maker.Exec(fieldmethodcall)); // turns the .add call into
-														// a statement for the
-														// body
+				maker.Select(maker.Ident(methodNode.toName(fieldName)), methodNode.toName("add")),
+				paramsRef.toList());
+		statements.add(maker.Exec(fieldmethodcall)); 
 
 		JCBlock body = maker.Block(0, statements.toList());
-		// defining and injecting the add method
-		String methodName="add"+ JediJavacUtil.firstToUpper(JediJavacUtil
-						.removePrefixFromString(interf));
-		JCMethodDecl subscribe = JediJavacUtil.recursiveSetGeneratedBy(maker
-				.MethodDef(
-						maker.Modifiers(Flags.PUBLIC),
-						node.toName(methodName),
-						maker.TypeIdent(CTC_VOID),
-						List.<JCTypeParameter> nil(), args.toList(),
-						List.<JCExpression> nil(), body, null),
-				node.up().get(), node.getContext());
-		JediJavacUtil.injectMethod(node.up().up(), subscribe, annotationName);
-	}
 
-	private void createRemoveMethod(JavacNode node, JavacTreeMaker maker,
-			String interf, String annotationName, String fname) {
-		Name argname = node.toName("listener");
-		Name fieldName=node.toName(fname);
-		ListBuffer<JCVariableDecl> args = new ListBuffer<JCVariableDecl>();
-		ListBuffer<JCExpression> params = new ListBuffer<JCExpression>();
-		ListBuffer<JCStatement> statements = new ListBuffer<JCStatement>();
-
-		// calling the method .remove() from hashset
-		args.add(maker.VarDef(maker.Modifiers(0), argname,
-				maker.Ident(node.toName(interf)), null));
-		params.add(maker.Ident(argname));
-		JCMethodInvocation fieldmethodcallremove = maker
-				.Apply(NIL_EXPRESSION,
-						maker.Select(maker.Ident(fieldName),
-								node.up().toName("remove")), params.toList());
-		statements.add(maker.Exec(fieldmethodcallremove)); // turns the .remove
-															// call into a
-															// statement for the
-															// body
-
-		JCBlock removeMethodBody = maker.Block(0, statements.toList());
-		// defining and injecting the remove method
-		JCMethodDecl unsubscribe = JediJavacUtil.recursiveSetGeneratedBy(maker
-				.MethodDef(
-						maker.Modifiers(Flags.PUBLIC),
-						node.toName("remove"
-								+ JediJavacUtil.firstToUpper(JediJavacUtil
-										.removePrefixFromString(interf))),
-						maker.TypeIdent(CTC_VOID),
-						List.<JCTypeParameter> nil(), args.toList(),
-						List.<JCExpression> nil(), removeMethodBody, null),
-				node.up().get(), node.getContext());
-		JediJavacUtil.injectMethod(node.up().up(), unsubscribe, annotationName);
-	}
-
-	private JCExpression handleArrayType(JavacNode node, JavacTreeMaker maker,
-			Class<?> clazz) {
-		int n = 0;
-		while (clazz.isArray()) {
-			clazz = clazz.getComponentType();
-			n++;
-		}
-
-		// String typeName = clazz.isArray() ?
-		// clazz.getComponentType().getName() : ;
-		JCExpression type = JediJavacUtil
-				.genTypeRef(node.up(), clazz.getName());
-
-		while (n > 0) {
-			type = maker.TypeArray(type);
-			n--;
-		}
-
-		// if(clazz.isArray())
-		// type = maker.TypeArray(type);
-		return type;
+		JCMethodDecl method= JediJavacUtil.createMethod(maker, maker.Modifiers(Flags.PUBLIC), methodNode.toName(methodName), maker.TypeIdent(CTC_VOID), params.toList(), body);
+		JediJavacUtil.injectMethod(methodNode.up(), method, annotationName);
+		
+		
 	}
 }

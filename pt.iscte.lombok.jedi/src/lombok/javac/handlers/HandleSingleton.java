@@ -59,8 +59,7 @@ import com.sun.tools.javac.util.Name;
 public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 
 	private static final List<JCExpression> NIL_EXPRESSION = List.nil();
-
-	
+	private static final List<JCVariableDecl> NIL_VARIABLEDECL= List.nil();
 	
 	@Override public void handle(AnnotationValues<Singleton> annotation, JCAnnotation ast, JavacNode node) {
 		boolean haspublic = false;
@@ -77,7 +76,7 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
  				if(method.restype==null ){
  					if(method.mods.flags==Flags.PUBLIC){
  						haspublic=true;
- 						subnode.addError("Class annotated with @Singleton cannot have a public constructor.");
+ 						subnode.addError("Class annotated with @Singleton cannot any public constructor.");
  					}
  					
  				}
@@ -99,16 +98,11 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 			createConstructor(node, maker,Singleton.class.getName());
 			createGetMethod(node, maker, clazz, fieldNode,methodname,Singleton.class.getName());	
 		}
-		
-		
-		
 	}
 
 
 	private JavacNode createLocalField(JavacNode node, JavacTreeMaker maker, JCClassDecl clazz, String fieldName,String annotationName) {
 		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE|Flags.STATIC), node.toName(fieldName),maker.Ident(clazz.name), null);
-		//JCVariableDecl uncleanField = maker.VarDef(maker.Modifiers(Flags.PRIVATE), x.name, cloneType(maker, x.defs, (JCTree)ast, node.getContext()), null);
-		//JCVariableDecl uncleanField = maker.VarDef(maker.Modifiers(Flags.PRIVATE), node.toName("$lombokUnclean"), maker.TypeIdent(Javac.CTC_BOOLEAN), null);
 		JavacNode fieldNode = JediJavacUtil.injectField(node.up(), field,annotationName);
 		return fieldNode;
 	}
@@ -123,34 +117,19 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 
 	private void createGetMethod(JavacNode node, JavacTreeMaker maker, JCClassDecl x, JavacNode fieldNode,String methodname,String annotationName) {
 		JCVariableDecl field = (JCVariableDecl)fieldNode.get();
-		Name fieldName = JediJavacUtil.removePrefixFromField(fieldNode);
 		ListBuffer<JCStatement> statements = new ListBuffer<JCStatement>();
 		JCExpression cond = maker.Binary(CTC_EQUAL, maker.Ident(field.name), maker.Literal(CTC_BOT, null));
-		
-	
-		
-//		JCMethodInvocation newCall = maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(x.name), node.up().toName("new")), NIL_EXPRESSION);
-		
-		JCNewClass newCall = maker.NewClass(null, List.<JCExpression>nil(), maker.Ident(x.name), NIL_EXPRESSION, null);
-		
-		JCAssign assign = maker.Assign(maker.Ident(fieldName), newCall);
-		//JCBlock then = maker.Block(0, assigns);
+		JCNewClass newCall = maker.NewClass(null, NIL_EXPRESSION, maker.Ident(x.name), NIL_EXPRESSION, null);
+		JCAssign assign = maker.Assign(maker.Ident(field.getName()), newCall);
 		JCBlock then = maker.Block(0, List.<JCStatement>of(maker.Exec(assign)));
 		JCIf ifStat = maker.If(cond, then, null);
 		
 		statements.add(ifStat);
 		statements.add(maker.Return(maker.Ident(field.name)));
-		//assigns.append(maker.Exec(assign));
-		//statements.append(maker.Exec(assign));
-
-		//statements.append(maker.Exec(assign));
 		JCBlock body = maker.Block(0, statements.toList());
-		//JCVariableDecl field = (JCVariableDecl) fieldNode.get();
 
 		
-		JCMethodDecl decl = JediJavacUtil.recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(Flags.PUBLIC|Flags.STATIC|Flags.SYNCHRONIZED), node.toName(methodname) , maker.Ident(x.name),
-				List.<JCTypeParameter>nil(), List.<JCVariableDecl>nil(), List.<JCExpression>nil(), body, null), node.up().get(), node.getContext());
-		
+	JCMethodDecl decl=JediJavacUtil.createMethod(maker,maker.Modifiers(Flags.PUBLIC|Flags.STATIC|Flags.SYNCHRONIZED),node.toName(methodname),maker.Ident(x.name),NIL_VARIABLEDECL,body);
 		JediJavacUtil.injectMethod(node.up(), decl,annotationName);
 	}
 }
