@@ -34,6 +34,16 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.SOURCE)
 public @interface Flyweight {
 	/**
+	 * methodName the custom name for the method that retrieves and instantiates each flyweight. 
+	 * Default value is "getInstance()"
+	 */
+	String methodName() default "";
+	/**
+	 * fieldName the custom name for the field that maps the flyweights. 
+	 * Default value is "_instance"
+	 */
+	String fieldName() default "";
+	/**
 	 *boolean that defines if the factory is generated or not.
 	 */
 	boolean factory() default true;

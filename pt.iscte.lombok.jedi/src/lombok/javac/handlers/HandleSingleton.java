@@ -115,11 +115,11 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 	}
 
 
-	private void createGetMethod(JavacNode node, JavacTreeMaker maker, JCClassDecl x, JavacNode fieldNode,String methodname,String annotationName) {
+	private void createGetMethod(JavacNode node, JavacTreeMaker maker,JCClassDecl clazz, JavacNode fieldNode,String methodName,String annotationName) {
 		JCVariableDecl field = (JCVariableDecl)fieldNode.get();
 		ListBuffer<JCStatement> statements = new ListBuffer<JCStatement>();
 		JCExpression cond = maker.Binary(CTC_EQUAL, maker.Ident(field.name), maker.Literal(CTC_BOT, null));
-		JCNewClass newCall = maker.NewClass(null, NIL_EXPRESSION, maker.Ident(x.name), NIL_EXPRESSION, null);
+		JCNewClass newCall = maker.NewClass(null, NIL_EXPRESSION, maker.Ident(clazz.name), NIL_EXPRESSION, null);
 		JCAssign assign = maker.Assign(maker.Ident(field.getName()), newCall);
 		JCBlock then = maker.Block(0, List.<JCStatement>of(maker.Exec(assign)));
 		JCIf ifStat = maker.If(cond, then, null);
@@ -129,7 +129,7 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 		JCBlock body = maker.Block(0, statements.toList());
 
 		
-	JCMethodDecl decl=JediJavacUtil.createMethod(maker,maker.Modifiers(Flags.PUBLIC|Flags.STATIC|Flags.SYNCHRONIZED),node.toName(methodname),maker.Ident(x.name),NIL_VARIABLEDECL,body);
+	JCMethodDecl decl=JediJavacUtil.createMethod(maker,maker.Modifiers(Flags.PUBLIC|Flags.STATIC|Flags.SYNCHRONIZED),node.toName(methodName),maker.Ident(clazz.name),NIL_VARIABLEDECL,body);
 		JediJavacUtil.injectMethod(node.up(), decl,annotationName);
 	}
 }

@@ -38,8 +38,8 @@ public @interface Composite {
 	 * </ul>
 	 * Used with:
 	 * <ul>
-	 * <li>CompositeLeaf
-	 * <li>CompositeComponent
+	 * <li>Composite.Leaf
+	 * <li>Composite.Component
 	 * <li>Composite
 	 *</ul>
 	 */
@@ -50,7 +50,7 @@ public @interface Composite {
 			String methodAddChildrenName() default "";
 			/**
 			 * 
-			 * used to define the name of the getChildren method. The default value depents on the field annotated 
+			 * used to define the name of the getChildren method. The default value depends on the field annotated 
 			 * with  &#64;CompositeChildren.
 			 *  * <ul>
 	 * <li>if the local field is a subclass of Collection.class, the default value is "getChildren".
@@ -67,15 +67,15 @@ public @interface Composite {
 	/**
 	 * This annotation is used in conjunction with @CompositeComponent, @CompositeChildren and @Composite to support
 	 * the implementation of the Composite Pattern.
-	 * Used to mark the component actor of the Composite Pattern. Can only be used on Abstract class.
+	 * Used to mark the component actor of the Composite Pattern. Can only be used on Abstract classes.
 	 * The class annotated with this will generate the following:
 	 * -a public constructor based on a manually done constructor, and add an 
 	 * argument parent of of a type annotated with @Composite.
 	 * -create a getParent method, that returns the parent(class annotated with @composite).
 	 * 
 	 * Used with:
-	 * -CompositeComponent
-	 * -CompositeChildren
+	 * -Composite.Component
+	 * -Composite.Leaf
 	 * -Composite
 	 *
 	 * @param methodName the custom name for the method that retrieves the parent. Default value is "getParent()"
@@ -97,8 +97,8 @@ public @interface Composite {
 	 * 
 	 * 
 	 * Used with:
-	 * -CompositeComponent
-	 * -CompositeChildren
+	 * -Composite.Component
+	 * -Composite.Children
 	 * -Composite
 	 *
 	 */
