@@ -55,7 +55,7 @@ public class HandleVisitableType extends JavacAnnotationHandler<Visitor> {
 		JCClassDecl clazz = (JCClassDecl) annotationNode.up().get();
 		Type type = clazz.sym.type;
 		
-		if(!JediJavacUtil.isAbstractType(typeNode))
+		if(!JediJavacUtil.isAbstractType(typeNode) || JediJavacUtil.isInterface(typeNode))
 			addVisitMethod(maker, typeNode, visitorType, type,visitorMethodNname,annotationName);
 		
 		for(Type s : HandleVisitableNode.getVisitorNodes(type.toString()))
@@ -63,7 +63,6 @@ public class HandleVisitableType extends JavacAnnotationHandler<Visitor> {
 		
 		String visitorTypeName = type.toString() + "." + annotation.getInstance().visitorTypeName();
 
-		
 		HandleVisitableNode.injectAcceptMethod(typeNode, maker, type, visitorTypeName,visitorMethodNname,acceptMethodName,annotationName);
 	}
 	

@@ -25,11 +25,13 @@ import com.sun.tools.javac.code.Type.ClassType;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCAssign;
 import com.sun.tools.javac.tree.JCTree.JCBlock;
+import com.sun.tools.javac.tree.JCTree.JCCatch;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.JCTree.JCMethodInvocation;
 import com.sun.tools.javac.tree.JCTree.JCStatement;
+import com.sun.tools.javac.tree.JCTree.JCTry;
 import com.sun.tools.javac.tree.JCTree.JCTypeApply;
 import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
 import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
@@ -206,6 +208,7 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<Children> {
 		}
 	}
 	
+	
 	private void createMethodgetChildren(JavacTreeMaker maker, JavacNode classnode, JCVariableDecl list,String annotationName,String methodGetName, boolean hasbody) {
 		if(methodGetName==null || methodGetName.equals("")){
 			methodGetName="getChildren";
@@ -213,9 +216,22 @@ public class HandleCompositeChildren extends JavacAnnotationHandler<Children> {
 		String componentName = list.sym.type.getTypeArguments().get(0).toString();
 		JCTypeApply type = maker.TypeApply(JediJavacUtil.handleArrayType(classnode, maker, java.util.Collection.class), List.<JCExpression>of(maker.Ident(classnode.toName(componentName))));
 		JCBlock body=null;
+		
 		if(hasbody){
+						//JCExpression paramclasstype=JediJavacUtil.handleArrayType(classnode, maker, java.lang.IndexOutOfBoundsException.class);
+						//JCVariableDecl param = maker.VarDef(maker.Modifiers(0), classnode.toName("err"), paramclasstype, null);
+						//JCExpression exceptionType=JediJavacUtil.handleArrayType(classnode, maker, ArrayIndexOutOfBoundsException.class);
+						//JCExpression message = maker.Literal("No child exists in that position.");
+						//JCExpression exceptionInstance = maker.NewClass(null, List.<JCExpression>nil(), exceptionType, List.<JCExpression>of(message), null);
+						//JCBlock	catchBody =maker.Block(0, List.<JCStatement>of(maker.Throw(exceptionInstance)));
+						//JCCatch c = maker.Catch(param, catchBody);
+			
+			
+			
 			JCMethodInvocation addcall = maker.Apply(List.<JCExpression>nil(), maker.Select(JediJavacUtil.handleArrayType(classnode, maker, java.util.Collections.class), classnode.toName("unmodifiableCollection")), List.<JCExpression>of(maker.Ident(list.name)));
 			body = maker.Block(0, List.<JCStatement>of(maker.Return((addcall))));
+			//JCTry tryv = maker.Try(body, List.<JCCatch>of(c), null);
+			//body = maker.Block(0, List.<JCStatement>of(tryv));
 		}
 		JCMethodDecl method=JediJavacUtil.createMethod(maker, maker.Modifiers(Flags.PUBLIC), classnode.toName(methodGetName), type, NIL_VARIABLEDECL, body);
 		JediJavacUtil.injectMethod(classnode, method,annotationName);

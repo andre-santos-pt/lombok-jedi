@@ -50,7 +50,8 @@ public class HandleCompositeComponent extends JavacAnnotationHandler<Composite.C
 		Type type = clazz.sym.type;
 		JCClassDecl composite =HandleComposite.getComposite(((ClassType)type).toString());
 		Composite.Component annotationInstance=  annotation.getInstance();
-	
+		if (composite== null)
+			annotationNode.addError("No composite element defined");
 		String methodname = annotationInstance.methodName();
 		if(methodname.equals("")||methodname==null){
 			methodname="getParent";
@@ -60,9 +61,30 @@ public class HandleCompositeComponent extends JavacAnnotationHandler<Composite.C
 			fieldName="parent";
 		}
 		JavacNode fieldnode=null;
+		boolean hasfieldparent=false;
+		boolean hasgetParent=false;
+		for (JavacNode node : annotationNode.up().down()) {
+			if(node.getKind().equals(Kind.FIELD)){
+				JCVariableDecl variable= ((JCVariableDecl)node.get());
+				if(variable.name.toString().equals(fieldName)){
+					hasfieldparent=true;
+					fieldnode=node;
+				}
+			}
+			if(node.getKind().equals(Kind.METHOD)){
+				JCMethodDecl method = ((JCMethodDecl)node.get());
+				if(method.name.toString().equals(methodname)){
+					hasgetParent=true;
+				}
+			}	
+		}
+		
+		
 		if(!JediJavacUtil.isInterface(annotationNode.up())){
+			if(!hasfieldparent)
 			fieldnode=createParentField(annotationNode,maker,composite,fieldName,Composite.Component.class.getName());
 			createConstructor(annotationNode,maker,composite,fieldnode,Composite.Component.class.getName());
+			if(!hasgetParent)
 			createGetParent(annotationNode,maker,composite,fieldnode,methodname,true,Composite.Component.class.getName());
 		}else{
 			createGetParent(annotationNode,maker,composite,fieldnode,methodname,false,Composite.Component.class.getName());

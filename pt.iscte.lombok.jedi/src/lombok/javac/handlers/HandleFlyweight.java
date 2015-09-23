@@ -6,8 +6,10 @@ import static lombok.javac.Javac.CTC_EQUAL;
 import static lombok.javac.Javac.CTC_NOT;
 
 import java.util.regex.Pattern;
+
 import lombok.AccessLevel;
 import lombok.Flyweight;
+import lombok.Singleton;
 import lombok.core.AnnotationValues;
 import lombok.core.AST.Kind;
 import lombok.javac.JavacAnnotationHandler;
@@ -108,30 +110,38 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
  					
  			}	
 		}
-		
-		if(annotation.getInstance().factory()){
+		Flyweight annotationInstance=  annotation.getInstance();
+		String methodname = annotationInstance.methodName();
+		if("".equals(methodname)){
+			methodname="getInstance";
+		}
+		String fieldName = annotationInstance.fieldName();
+		if(fieldName.equals("")||fieldName==null){
+			fieldName="_instance";
+		}
+		if(annotationInstance.factory()){
 			ListBuffer<JCVariableDecl> flyweightIntrinsic = new ListBuffer<JCVariableDecl>();
 			notificationValitations(flyweightIntrinsic, maker, node);
 			JCBlock body = null;
 			
-			switch(annotation.getInstance().factoryType()){
+			switch(annotationInstance.factoryType()){
 			case 0:
-				body = defineSecondaryFactory(node, maker,flyweightIntrinsic,annotationName);
+				body = defineSecondaryFactory(node, maker,flyweightIntrinsic,fieldName,annotationName);
 			break;
 			case 1:
-				createFieldMapOfMaps(node, maker, flyweightIntrinsic,annotationName);
+				createFieldMapOfMaps(node, maker, flyweightIntrinsic,fieldName,annotationName);
 				createConstructor(node,maker,flyweightIntrinsic,annotationName);
 				ListBuffer<JCStatement> statements= new ListBuffer<JCStatement>();
 
-				creatingIfLevels(node, flyweightIntrinsic, maker, statements);
-				gettingObject(node, flyweightIntrinsic.toList(), maker, statements);
+				creatingIfLevels(node, flyweightIntrinsic, maker, statements,fieldName);
+				gettingObject(node, flyweightIntrinsic.toList(), maker, statements,fieldName);
 				body=maker.Block(0, statements.toList());
 			break;
 			default:
 				node.addError("The value of factoryType can only be 0 or 1");
 			break;
 			}
-			JCMethodDecl verifywiththis = JediJavacUtil.createMethod(maker, maker.Modifiers(Flags.PUBLIC|Flags.STATIC), node.toName("getInstance"), maker.Ident(classdecl.name), flyweightIntrinsic.toList().reverse(), body);
+			JCMethodDecl verifywiththis = JediJavacUtil.createMethod(maker, maker.Modifiers(Flags.PUBLIC|Flags.STATIC), node.toName(methodname), maker.Ident(classdecl.name), flyweightIntrinsic.toList().reverse(), body);
 			JediJavacUtil.injectMethod(node.up(), verifywiththis,annotationName);	
 			
 		}
@@ -142,26 +152,26 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 	}
 
 
-	private void createFieldMapOfMaps(JavacNode node, JavacTreeMaker maker, ListBuffer<JCVariableDecl> flyweightIntrinsic,String annotationName) {
+	private void createFieldMapOfMaps(JavacNode node, JavacTreeMaker maker, ListBuffer<JCVariableDecl> flyweightIntrinsic,String fieldName,String annotationName) {
 		JCExpression hashmap=definemap(flyweightIntrinsic.toList(),flyweightIntrinsic.size()-1,node,maker,true);
 		
 		JCNewClass fieldinit = maker.NewClass(null, List.<JCExpression>nil(), hashmap, NIL_EXPRESSION, null);
 		//defining the field 
-		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE|Flags.FINAL|Flags.STATIC), node.toName("flyweights"),hashmap,fieldinit);
+		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE|Flags.FINAL|Flags.STATIC), node.toName(fieldName),hashmap,fieldinit);
 		//injecting the field
 		JavacNode fieldNode = JediJavacUtil.injectField(node.up(), field,annotationName);
 	}
 
 
-	private JCBlock defineSecondaryFactory(JavacNode node, JavacTreeMaker maker, ListBuffer<JCVariableDecl> flyobjects,String annotationName) {
+	private JCBlock defineSecondaryFactory(JavacNode node, JavacTreeMaker maker, ListBuffer<JCVariableDecl> flyobjects,String fieldName,String annotationName) {
 		
 		
-		createFieldofMap(node, maker, annotationName);
+		createFieldofMap(node, maker, fieldName,annotationName);
 		createConstructor(node,maker,flyobjects,annotationName);
 		
 		//JCExpression getmapvalue = callingsubmap(node,maker,flyobjects,maker.Ident(node.toName("flyweights")),flyobjects.size()-1,flyobjects.size(),null);
 		ListBuffer<JCStatement> statements = creatingFactory(node, maker,
-				flyobjects);
+				flyobjects,fieldName);
 		return maker.Block(0, statements.toList());
 		
 			
@@ -169,7 +179,7 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 
 
 	private ListBuffer<JCStatement> creatingFactory(JavacNode node,
-			JavacTreeMaker maker, ListBuffer<JCVariableDecl> flyobjects) {
+			JavacTreeMaker maker, ListBuffer<JCVariableDecl> flyobjects,String fieldName) {
 		ListBuffer<JCExpression> args = new ListBuffer<JCExpression>(); 
 		ListBuffer<JCStatement> statements= new ListBuffer<JCStatement>();
 		args = new ListBuffer<JCExpression>(); 
@@ -180,24 +190,24 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 		JCVariableDecl local = maker.VarDef(maker.Modifiers(0), node.toName("temp"),maker.Ident(((JCClassDecl) node.up().get()).name),newCall);
 
 		statements.add(local);
-		JCExpression conditionvalue= maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(node.toName("flyweights")) ,node.toName("containsKey")), List.<JCExpression>of(maker.Ident(local.name)));
+		JCExpression conditionvalue= maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(node.toName(fieldName)) ,node.toName("containsKey")), List.<JCExpression>of(maker.Ident(local.name)));
 		JCExpression cond = maker.Unary(CTC_NOT, conditionvalue);
 		ListBuffer<JCStatement> body= new ListBuffer<JCStatement>();
 		args = new ListBuffer<JCExpression>(); 
 		args.add(maker.Ident(local.name));
 		args.add(maker.Ident(local.name));
-		JCMethodInvocation addcall=maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(node.toName("flyweights")) ,node.toName("put")),args.toList());
+		JCMethodInvocation addcall=maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(node.toName(fieldName)) ,node.toName("put")),args.toList());
 		body.add(maker.Exec(addcall));
 		body.add(maker.Return(maker.Ident(local.name)));
 		JCBlock then = maker.Block(0, body.toList());
-		JCExpression getcall=maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(node.toName("flyweights")) ,node.toName("get")),List.<JCExpression>of(maker.Ident(local.name)));
+		JCExpression getcall=maker.Apply(NIL_EXPRESSION, maker.Select(maker.Ident(node.toName(fieldName)) ,node.toName("get")),List.<JCExpression>of(maker.Ident(local.name)));
 		JCStatement elsepart = maker.Return(getcall);
 		statements.add(maker.If(cond, then, elsepart));
 		return statements;
 	}
 
 
-	private void createFieldofMap(JavacNode node, JavacTreeMaker maker,
+	private void createFieldofMap(JavacNode node, JavacTreeMaker maker,String fieldName,
 			String annotationName) {
 		ListBuffer<JCExpression> args = new ListBuffer<JCExpression>(); 
 		args.add(maker.Ident(((JCClassDecl) node.up().get()).name));
@@ -206,7 +216,7 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 		
 		JCNewClass fieldinit = maker.NewClass(null, List.<JCExpression>nil(), hashfield, NIL_EXPRESSION, null);
 		//defining the field 
-		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE|Flags.FINAL|Flags.STATIC), node.toName("flyweights"),hashfield,fieldinit);
+		JCVariableDecl field = maker.VarDef(maker.Modifiers(Flags.PRIVATE|Flags.FINAL|Flags.STATIC), node.toName(fieldName),hashfield,fieldinit);
 		//injecting the field
 		JavacNode fieldNode = JediJavacUtil.injectField(node.up(), field,annotationName);
 	}
@@ -242,10 +252,10 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 
 
 
-	private void gettingObject(JavacNode node, List<JCVariableDecl> flyobjects, JavacTreeMaker maker, ListBuffer<JCStatement> statements) {
+	private void gettingObject(JavacNode node, List<JCVariableDecl> flyobjects, JavacTreeMaker maker, ListBuffer<JCStatement> statements,String fieldName) {
 		ListBuffer<JCStatement> body= new ListBuffer<JCStatement>();
 		ListBuffer<JCExpression> args= new ListBuffer<JCExpression>();
-		JCExpression getmapvalue = callingsubmap(node,maker,flyobjects,maker.Ident(node.toName("flyweights")),flyobjects.size()-1,flyobjects.size(),null);
+		JCExpression getmapvalue = callingsubmap(node,maker,flyobjects,maker.Ident(node.toName(fieldName)),flyobjects.size()-1,flyobjects.size(),null);
 		JCVariableDecl local = maker.VarDef(maker.Modifiers(0), node.toName("o"),maker.Ident(((JCClassDecl) node.up().get()).name),getmapvalue);
 		statements.add(local);
 		for (JCVariableDecl vars : flyobjects) {
@@ -255,12 +265,12 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 		args= new ListBuffer<JCExpression>();
 		JCAssign assign = maker.Assign(maker.Ident(local.name), newCall);
 		body.add(maker.Exec(assign));
-		JCExpression localinit = callingsubmap(node,maker,flyobjects,maker.Ident(node.toName("flyweights")),flyobjects.size()-1,flyobjects.size()-1,null);
+		JCExpression localinit = callingsubmap(node,maker,flyobjects,maker.Ident(node.toName(fieldName)),flyobjects.size()-1,flyobjects.size()-1,null);
 		args.add(maker.Ident(flyobjects.get(0).name));
 		args.add(maker.Ident(local.name));
 		JCMethodInvocation putinvocation;
 		if(flyobjects.size()-1==0){
-			 putinvocation= maker.Apply(NIL_EXPRESSION,  maker.Select(maker.Ident(node.toName("flyweights")) ,node.toName("put")), args.toList());	
+			 putinvocation= maker.Apply(NIL_EXPRESSION,  maker.Select(maker.Ident(node.toName(fieldName)) ,node.toName("put")), args.toList());	
 		}else{
 			 putinvocation= maker.Apply(NIL_EXPRESSION,  maker.Select(localinit ,node.toName("put")), args.toList());
 		}
@@ -269,14 +279,14 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 		JCBlock then = maker.Block(0, body.toList());
 		JCIf ife = maker.If(condition,then, null);
 		statements.add(ife);
-		JCExpression getvaluetoreturn = callingsubmap(node,maker,flyobjects,maker.Ident(node.toName("flyweights")),flyobjects.size()-1,flyobjects.size(),null);
+		JCExpression getvaluetoreturn = callingsubmap(node,maker,flyobjects,maker.Ident(node.toName(fieldName)),flyobjects.size()-1,flyobjects.size(),null);
 		statements.add(maker.Return(getvaluetoreturn));
 	}
 
 
-	private void creatingIfLevels(JavacNode node, ListBuffer<JCVariableDecl> flyobjects, JavacTreeMaker maker, ListBuffer<JCStatement> statements) {
+	private void creatingIfLevels(JavacNode node, ListBuffer<JCVariableDecl> flyobjects, JavacTreeMaker maker, ListBuffer<JCStatement> statements,String fieldName) {
 		for(int i=0; i<flyobjects.size()-1;i++){
-			JCStatement ife = defineMapLevels(node,maker,flyobjects.toList(),maker.Ident(node.toName("flyweights")),flyobjects.size()-1,i);
+			JCStatement ife = defineMapLevels(node,maker,flyobjects.toList(),maker.Ident(node.toName(fieldName)),flyobjects.size()-1,i);
 			statements.add(ife);
 		}
 	}

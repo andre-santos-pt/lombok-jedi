@@ -53,10 +53,8 @@ public class HandleVisitableNode extends JavacAnnotationHandler<Visitor.Node> {
 		JavacNode typeNode = annotationNode.up();
 		JavacTreeMaker maker = typeNode.getTreeMaker();
 		Types types = Types.instance(typeNode.getAst().getContext());
-		
 		JCClassDecl clazz = (JCClassDecl) annotationNode.up().get();			
 			Type type = clazz.sym.type;
-			
 			List<Type> closure = types.closure(type);
 			for (Type s : closure) {
 				
@@ -64,12 +62,11 @@ public class HandleVisitableNode extends JavacAnnotationHandler<Visitor.Node> {
 				Visitor ann = ct.tsym.getAnnotation(Visitor.class);
 				
 				if (ann != null) {
-					if(!JediJavacUtil.isAbstractType(annotationNode.up())){
+					//if(!JediJavacUtil.isAbstractType(annotationNode.up())){
 						if (!subtypes.containsKey(ct.toString())) 
 						subtypes.put(ct.toString(), new HashSet<Type>());
 					subtypes.get(ct.toString()).add(type);
-					}
-					
+					//}
 					String visitorType = ct.toString() + "." + ann.visitorTypeName();
 					injectAcceptMethod(typeNode, maker, type, visitorType,ann.visitorMethodName(),ann.acceptMethodName(),Visitor.Node.class.getName());
 					
