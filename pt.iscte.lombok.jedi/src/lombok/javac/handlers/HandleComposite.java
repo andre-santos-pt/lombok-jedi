@@ -27,12 +27,12 @@ import java.util.Map;
 import lombok.Composite;
 import lombok.Composite.Children;
 import lombok.Composite.Component;
-//import lombok.core.AST.Kind;
-//import lombok.core.AnnotationValues;
-//import lombok.core.HandlerPriority;
-//import lombok.javac.JavacAnnotationHandler;
-//import lombok.javac.JavacNode;
-//import lombok.javac.ResolutionResetNeeded;
+import lombok.core.AST.Kind;
+import lombok.core.AnnotationValues;
+import lombok.core.HandlerPriority;
+import lombok.javac.JavacAnnotationHandler;
+import lombok.javac.JavacNode;
+import lombok.javac.ResolutionResetNeeded;
 
 import org.mangosdk.spi.ProviderFor;
 

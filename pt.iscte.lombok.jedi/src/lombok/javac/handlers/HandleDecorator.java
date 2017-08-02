@@ -22,6 +22,22 @@ package lombok.javac.handlers;
  * THE SOFTWARE.
  */
 
+import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.code.Type;
+import com.sun.tools.javac.code.Types;
+import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.tree.JCTree.*;
+import com.sun.tools.javac.util.List;
+import com.sun.tools.javac.util.Name;
+import lombok.AccessLevel;
+import lombok.Decorator;
+import lombok.core.AnnotationValues;
+import lombok.core.HandlerPriority;
+import lombok.javac.JavacAnnotationHandler;
+import lombok.javac.JavacNode;
+import lombok.javac.JavacTreeMaker;
+import org.mangosdk.spi.ProviderFor;
+
 import static lombok.javac.Javac.CTC_BOOLEAN;
 import static lombok.javac.Javac.CTC_BYTE;
 import static lombok.javac.Javac.CTC_CHAR;
@@ -32,44 +48,6 @@ import static lombok.javac.Javac.CTC_LONG;
 import static lombok.javac.Javac.CTC_SHORT;
 import static lombok.javac.Javac.CTC_VOID;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.HashSet;
-
-import lombok.AccessLevel;
-import lombok.Decorator;
-import lombok.Visitor;
-import lombok.core.AnnotationValues;
-import lombok.core.HandlerPriority;
-import lombok.javac.JavacAnnotationHandler;
-import lombok.javac.JavacNode;
-import lombok.javac.JavacTreeMaker;
-import lombok.javac.ResolutionResetNeeded;
-import lombok.javac.JavacTreeMaker.TypeTag;
-
-import org.mangosdk.spi.ProviderFor;
-
-import com.sun.tools.javac.code.Flags;
-import com.sun.tools.javac.code.Symbol;
-import com.sun.tools.javac.code.Type;
-import com.sun.tools.javac.code.Types;
-import com.sun.tools.javac.code.Type.ClassType;
-import com.sun.tools.javac.tree.JCTree;
-import com.sun.tools.javac.tree.JCTree.JCAnnotation;
-import com.sun.tools.javac.tree.JCTree.JCAssign;
-import com.sun.tools.javac.tree.JCTree.JCBlock;
-import com.sun.tools.javac.tree.JCTree.JCClassDecl;
-import com.sun.tools.javac.tree.JCTree.JCExpression;
-import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
-import com.sun.tools.javac.tree.JCTree.JCLiteral;
-import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
-import com.sun.tools.javac.tree.JCTree.JCMethodInvocation;
-import com.sun.tools.javac.tree.JCTree.JCStatement;
-import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
-import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
-import com.sun.tools.javac.util.List;
-import com.sun.tools.javac.util.ListBuffer;
-import com.sun.tools.javac.util.Name;
 
 
 @ProviderFor(JavacAnnotationHandler.class) 
@@ -79,7 +57,7 @@ public class HandleDecorator extends JavacAnnotationHandler<Decorator> {
 	
 	private static final List<JCExpression> NIL_EXPRESSION = List.nil();
 	
-	public TypeTag handlePrimitiveType(String type) {
+	public JavacTreeMaker.TypeTag handlePrimitiveType(String type) {
 		
 		if (type.equals(int.class.getName())) {
 			return CTC_INT;

@@ -10,6 +10,9 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Maven: org.projectlombok:lombok:1.16.18" level="project" />
+    <orderEntry type="library" name="Maven: com.android.tools.external.lombok:lombok-ast:0.2.3" level="project" />
+    <orderEntry type="library" name="Maven: com.google.guava:guava:17.0" level="project" />
+    <orderEntry type="library" name="Maven: org.projectlombok:lombok-utils:1.16.18" level="project" />
     <orderEntry type="module-library">
       <library name="Maven: com.sun:tools:1.8.131">
         <CLASSES>
