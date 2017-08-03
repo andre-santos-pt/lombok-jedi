@@ -21,10 +21,11 @@
  */
 package lombok.javac.handlers;
 
-import static lombok.javac.Javac.CTC_BOT;
-import static lombok.javac.Javac.CTC_EQUAL;
+import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.tree.JCTree.*;
+import com.sun.tools.javac.util.List;
+import com.sun.tools.javac.util.ListBuffer;
 import lombok.AccessLevel;
-import lombok.Observable;
 import lombok.Singleton;
 import lombok.core.AST.Kind;
 import lombok.core.AnnotationValues;
@@ -32,26 +33,10 @@ import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
 import lombok.javac.ResolutionResetNeeded;
-import lombok.javac.handlers.HandleConstructor;
-import lombok.javac.handlers.HandleData;
-
 import org.mangosdk.spi.ProviderFor;
 
-import com.sun.tools.javac.code.Flags;
-import com.sun.tools.javac.tree.JCTree.JCAnnotation;
-import com.sun.tools.javac.tree.JCTree.JCAssign;
-import com.sun.tools.javac.tree.JCTree.JCBlock;
-import com.sun.tools.javac.tree.JCTree.JCClassDecl;
-import com.sun.tools.javac.tree.JCTree.JCExpression;
-import com.sun.tools.javac.tree.JCTree.JCIf;
-import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
-import com.sun.tools.javac.tree.JCTree.JCNewClass;
-import com.sun.tools.javac.tree.JCTree.JCStatement;
-import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
-import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
-import com.sun.tools.javac.util.List;
-import com.sun.tools.javac.util.ListBuffer;
-import com.sun.tools.javac.util.Name;
+import static lombok.javac.Javac.CTC_BOT;
+import static lombok.javac.Javac.CTC_EQUAL;
 
 
 @ProviderFor(JavacAnnotationHandler.class)
@@ -109,7 +94,7 @@ public class HandleSingleton extends JavacAnnotationHandler<Singleton> {
 
 
 	public static void createConstructor(JavacNode node, JavacTreeMaker maker,String annotationName) {
-		JCMethodDecl constructor = HandleConstructor.createConstructor(AccessLevel.PACKAGE, List.<JCAnnotation>nil(), node.up(), List.<JavacNode>nil(), null, node);
+		JCMethodDecl constructor = HandleConstructor.createConstructor(AccessLevel.PACKAGE, List.<JCAnnotation>nil(), node.up(), List.<JavacNode>nil(), false, node); //null
 		constructor.mods=maker.Modifiers(Flags.PRIVATE);
 		JediJavacUtil.injectMethod(node.up(), constructor,annotationName);
 	}
