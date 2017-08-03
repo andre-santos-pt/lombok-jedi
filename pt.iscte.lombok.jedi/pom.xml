@@ -47,7 +47,7 @@
     <dependency>
       <groupId>org.mangosdk.spi</groupId>
       <artifactId>spi</artifactId>
-      <version>LATEST</version>
+        <version>0.2.4</version>
     </dependency>
 
     <dependency>
@@ -63,6 +63,10 @@
             <id>mvnrepository</id>
             <name>mvnrepository</name>
             <url>http://www.mvnrepository.com</url>
+        </repository>
+        <repository>
+            <id>sepalabola</id>
+            <url>http://www.ebi.ac.uk/~maven/m2repo</url>
         </repository>
     </repositories>
 </project>
