@@ -1,7 +1,9 @@
-import lombok.VisitableType;
+import lombok.Decorator;
+import lombok.Visitor;
 
-@VisitableType
+@Visitor//.Type
 //@Decorator(interfaceClass=IElement.class, abstractClassName="Tes")
+@Decorator(abstractClassName="Tes")
 public interface IElement{
 public String getName();
 public Permissions getPermissions();

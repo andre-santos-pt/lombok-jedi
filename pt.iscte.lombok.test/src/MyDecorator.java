@@ -1,6 +1,6 @@
 import lombok.Wrapper;
 
-@Wrapper(TestInterface.class)
+@Wrapper(classType = TestInterface.class)
 public class MyDecorator {
 
 }

@@ -1,17 +1,15 @@
+import lombok.Composite;
+import lombok.Visitor;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.Composite;
-import lombok.CompositeChildren;
-import lombok.VisitableChildren;
-import lombok.VisitableNode;
-
 @Composite
-@VisitableNode
+@Visitor.Node
 public class Folder extends Element{
 
-	@CompositeChildren
-	@VisitableChildren
+	@Composite.Children
+	@Visitor.Children
 	private List<Element> children;
 	
 	public Folder(Folder parent, String name) {

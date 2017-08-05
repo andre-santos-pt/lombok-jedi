@@ -1,12 +1,11 @@
 import lombok.Flyweight;
-import lombok.FlyweightObject;
 
 @Flyweight
 public class Permissions {
-@FlyweightObject
+@Flyweight.Object
 int read;
-@FlyweightObject
+@Flyweight.Object
 int write;
-@FlyweightObject
+@Flyweight.Object
 int execute;
 }
