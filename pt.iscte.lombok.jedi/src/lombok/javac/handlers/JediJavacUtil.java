@@ -1275,7 +1275,7 @@ public class JediJavacUtil {
 	 * Generates a new statement that checks if the given variable is null, and if so, throws a specified exception with the
 	 * variable name as message.
 	 * 
-	 * @param exName The name of the exception to throw; normally {@code java.lang.NullPointerException}.
+	 * anterior param exName The name of the exception to throw; normally {@code java.lang.NullPointerException}.
 	 */
 	// TODO check null
 	public static JCStatement generateNullCheck(JavacTreeMaker maker, JavacNode variable, JavacNode source) {

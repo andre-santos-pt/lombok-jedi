@@ -1,48 +1,24 @@
 package lombok.javac.handlers;
 
 
-import static lombok.javac.Javac.CTC_BOT;
-import static lombok.javac.Javac.CTC_EQUAL;
-import static lombok.javac.Javac.CTC_NOT;
-
-import java.util.regex.Pattern;
-
+import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.tree.JCTree.*;
+import com.sun.tools.javac.util.List;
+import com.sun.tools.javac.util.ListBuffer;
 import lombok.AccessLevel;
 import lombok.Flyweight;
-import lombok.Singleton;
-import lombok.core.AnnotationValues;
 import lombok.core.AST.Kind;
+import lombok.core.AnnotationValues;
 import lombok.javac.JavacAnnotationHandler;
 import lombok.javac.JavacNode;
 import lombok.javac.JavacTreeMaker;
 import lombok.javac.ResolutionResetNeeded;
-import lombok.javac.handlers.HandleConstructor;
-import lombok.javac.handlers.HandleConstructor.SkipIfConstructorExists;
-import lombok.javac.handlers.HandleEqualsAndHashCode;
-import lombok.javac.handlers.HandleFieldDefaults;
-import lombok.javac.handlers.HandleGetter;
-import lombok.javac.handlers.HandleToString;
-
 import org.mangosdk.spi.ProviderFor;
 
-import com.sun.tools.javac.code.Flags;
-import com.sun.tools.javac.tree.JCTree;
-import com.sun.tools.javac.tree.JCTree.JCAnnotation;
-import com.sun.tools.javac.tree.JCTree.JCAssign;
-import com.sun.tools.javac.tree.JCTree.JCBlock;
-import com.sun.tools.javac.tree.JCTree.JCClassDecl;
-import com.sun.tools.javac.tree.JCTree.JCExpression;
-import com.sun.tools.javac.tree.JCTree.JCIdent;
-import com.sun.tools.javac.tree.JCTree.JCIf;
-import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
-import com.sun.tools.javac.tree.JCTree.JCMethodInvocation;
-import com.sun.tools.javac.tree.JCTree.JCNewClass;
-import com.sun.tools.javac.tree.JCTree.JCStatement;
-import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
-import com.sun.tools.javac.tree.JCTree.JCUnary;
-import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
-import com.sun.tools.javac.util.List;
-import com.sun.tools.javac.util.ListBuffer;
+import java.util.regex.Pattern;
+
+import static lombok.javac.Javac.*;
 
 @ResolutionResetNeeded
 @ProviderFor(JavacAnnotationHandler.class)
@@ -223,7 +199,7 @@ public class HandleFlyweight extends JavacAnnotationHandler<Flyweight> {
 
 
 	private void createConstructor(JavacNode node, JavacTreeMaker maker, ListBuffer<JCVariableDecl> flyweightIntrinsic,String annotationName) {
-		JCMethodDecl constructor = HandleConstructor.createConstructor(AccessLevel.PACKAGE, List.<JCAnnotation>nil(), node.up(), List.<JavacNode>nil(), null, node);
+		JCMethodDecl constructor = HandleConstructor.createConstructor(AccessLevel.PACKAGE, List.<JCAnnotation>nil(), node.up(), List.<JavacNode>nil(), false, node); //null
 		constructor.mods=maker.Modifiers(Flags.PRIVATE);
 		ListBuffer<JCVariableDecl> params= new ListBuffer<JCVariableDecl> ();
 		ListBuffer<JCStatement> body= new ListBuffer<JCStatement> ();

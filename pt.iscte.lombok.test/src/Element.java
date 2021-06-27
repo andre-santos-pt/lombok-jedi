@@ -1,14 +1,20 @@
-import lombok.CompositeComponent;
+import lombok.Composite;
 import lombok.Observable;
-import lombok.ObserverNotify;
-import lombok.VisitableNode;
-@CompositeComponent
-@VisitableNode
+import lombok.Visitor;
+
+@Composite.Component
+@Visitor.Node
 public abstract class Element implements IElement{
 	private String name;
 	private Permissions permissions;
+	Folder p;
 
-	private Element(String name){
+	Element(String name){
+		this.name=name;
+	}
+
+	Element(Folder p, String name){
+		this.p=p;
 		this.name=name;
 	}
 
@@ -27,14 +33,14 @@ public abstract class Element implements IElement{
 	@Observable(type=TestInterface.class,operation="check")
 	@Override
 	public void rename(String newname) {
-		@ObserverNotify()
+		@Observable.Notify()
 		int x;
 		name = newname;
 
 	}
 	@Observable
 	@Override
-	public void setPermissions(@ObserverNotify Permissions newPermissions) {
+	public void setPermissions(@Observable.Notify Permissions newPermissions) {
 		// TODO Auto-generated method stub
 		permissions=newPermissions;
 	}
