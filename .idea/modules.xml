@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/pt.iscte.lombok.jedi/pt.iscte.lombok.jedi.iml" filepath="$PROJECT_DIR$/pt.iscte.lombok.jedi/pt.iscte.lombok.jedi.iml" />
+      <module fileurl="file://$PROJECT_DIR$/pt.iscte.lombok.test/pt.iscte.lombok.test.iml" filepath="$PROJECT_DIR$/pt.iscte.lombok.test/pt.iscte.lombok.test.iml" />
+    </modules>
+  </component>
+</project>
