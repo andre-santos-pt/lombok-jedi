@@ -4,7 +4,7 @@
   <artifactId>pt.iscte.lombok.jedi</artifactId>
   <version>0.0.1-SNAPSHOT</version>
     <properties>
-        <tools.path>C:\Program Files\Java\jdk1.8.0_131\lib\tools.jar</tools.path>
+        <tools.path>C:\Program Files\Java\jdk1.8.0_333\lib\tools.jar</tools.path>
     </properties>
   <build>
     <sourceDirectory>src</sourceDirectory>
@@ -19,15 +19,32 @@
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.5.1</version>
+        <version>3.10.1</version>
         <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
+          <source>1.8</source>
+          <target>1.8</target>
+            <showDeprecation>true</showDeprecation>
+            <showWarnings>true</showWarnings>
+            <fork>true</fork>
+<!--            <compilerargs>-->
+<!--                <arg>-Werror</arg>-->
+<!--                <arg>-Xlint:all</arg>-->
+<!--                <arg>-J&#45;&#45;add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>-->
+<!--                <arg>-J&#45;&#45;add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>-->
+<!--                <arg>-J&#45;&#45;add-opens=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>-->
+<!--                <arg>-J&#45;&#45;add-opens=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>-->
+<!--                <arg>-J&#45;&#45;add-opens=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</arg>-->
+<!--                <arg>-J&#45;&#45;add-opens=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>-->
+<!--                <arg>-J&#45;&#45;add-opens=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>-->
+<!--                <arg>-J&#45;&#45;add-opens=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>-->
+<!--                <arg>-J&#45;&#45;add-opens=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>-->
+<!--            </compilerargs>-->
         </configuration>
       </plugin>
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-source-plugin</artifactId>
+            <version>3.2.1</version>
             <executions>
                 <execution>
                     <id>attach-sources</id>
@@ -56,19 +73,29 @@
           <artifactId>lombok-utils</artifactId>
           <version>1.16.18</version>
       </dependency>
-    <dependency>
-      <groupId>org.mangosdk.spi</groupId>
-      <artifactId>spi</artifactId>
-        <version>0.2.4</version>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>org.mangosdk.spi</groupId>-->
+<!--      <artifactId>spi</artifactId>-->
+<!--        <version>0.2.4</version>-->
+<!--    </dependency>-->
+      <dependency>
+          <groupId>com.github.rspilker</groupId>
+          <artifactId>spi</artifactId>
+          <version>-SNAPSHOT</version>
+      </dependency>
 
-    <dependency>
+          <dependency>
       <groupId>com.sun</groupId>
       <artifactId>tools</artifactId>
       <version>1.8.131</version>
       <scope>system</scope>
       <systemPath>${tools.path}</systemPath>
     </dependency>
+<!--      <dependency>-->
+<!--          <groupId>com.github.olivergondza</groupId>-->
+<!--          <artifactId>maven-jdk-tools-wrapper</artifactId>-->
+<!--          <version>0.1</version>-->
+<!--      </dependency>-->
   </dependencies>
     <repositories>
         <repository>
@@ -79,6 +106,10 @@
         <repository>
             <id>sepalabola</id>
             <url>http://www.ebi.ac.uk/~maven/m2repo</url>
+        </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
         </repository>
     </repositories>
 
