@@ -1,19 +1,6 @@
 
 package lombok.javac.handlers;
 
-import static lombok.javac.Javac.CTC_BOOLEAN;
-import lombok.Singleton;
-import lombok.Visitor;
-import lombok.core.AnnotationValues;
-import lombok.core.HandlerPriority;
-import lombok.javac.Javac;
-import lombok.javac.JavacAnnotationHandler;
-import lombok.javac.JavacNode;
-import lombok.javac.JavacTreeMaker;
-import lombok.javac.ResolutionResetNeeded;
-
-import org.mangosdk.spi.ProviderFor;
-
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
@@ -26,6 +13,17 @@ import com.sun.tools.javac.tree.JCTree.JCStatement;
 import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
 import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 import com.sun.tools.javac.util.List;
+import lombok.Visitor;
+import lombok.core.AnnotationValues;
+import lombok.core.HandlerPriority;
+import lombok.javac.Javac;
+import lombok.javac.JavacAnnotationHandler;
+import lombok.javac.JavacNode;
+import lombok.javac.JavacTreeMaker;
+import lombok.javac.ResolutionResetNeeded;
+import org.mangosdk.spi.ProviderFor;
+
+import static lombok.javac.Javac.CTC_BOOLEAN;
 
 @ProviderFor(JavacAnnotationHandler.class)
 @ResolutionResetNeeded
