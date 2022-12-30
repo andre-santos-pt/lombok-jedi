@@ -21,49 +21,6 @@
  */
 package lombok.javac.handlers;
 
-import static lombok.core.handlers.HandlerUtil.*;
-import static lombok.javac.Javac.*;
-import static lombok.javac.JavacAugments.JCTree_generatedNode;
-import static lombok.javac.handlers.JavacHandlerUtil.chainDots;
-import static lombok.javac.handlers.JavacHandlerUtil.findAnnotations;
-import static lombok.javac.handlers.JavacHandlerUtil.generateNullCheck;
-import static lombok.javac.handlers.JavacHandlerUtil.recursiveSetGeneratedBy;
-import static lombok.javac.handlers.JavacHandlerUtil.removePrefixFromField;
-import static lombok.javac.handlers.JavacHandlerUtil.toJavacModifier;
-
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-
-import lombok.AccessLevel;
-import lombok.ConfigurationKeys;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Observable;
-import lombok.core.AST.Kind;
-import lombok.core.AnnotationValues;
-import lombok.core.LombokImmutableList;
-import lombok.core.AnnotationValues.AnnotationValue;
-import lombok.core.TypeResolver;
-import lombok.core.configuration.NullCheckExceptionType;
-import lombok.core.handlers.HandlerUtil;
-import lombok.delombok.LombokOptionsFactory;
-import lombok.experimental.Accessors;
-import lombok.experimental.Tolerate;
-import lombok.javac.Javac;
-import lombok.javac.JavacNode;
-import lombok.javac.JavacTreeMaker;
-import lombok.javac.handlers.JavacHandlerUtil;
-
 import com.sun.tools.javac.code.BoundKind;
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Symbol;
@@ -93,6 +50,7 @@ import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
 import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 import com.sun.tools.javac.tree.JCTree.JCWildcard;
 import com.sun.tools.javac.tree.JCTree.TypeBoundKind;
+import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.tree.TreeScanner;
 import com.sun.tools.javac.util.Context;
 import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
@@ -100,6 +58,45 @@ import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.ListBuffer;
 import com.sun.tools.javac.util.Name;
 import com.sun.tools.javac.util.Options;
+import lombok.AccessLevel;
+import lombok.ConfigurationKeys;
+import lombok.Getter;
+import lombok.Observable;
+import lombok.core.AST.Kind;
+import lombok.core.AnnotationValues;
+import lombok.core.AnnotationValues.AnnotationValue;
+import lombok.core.LombokImmutableList;
+import lombok.core.TypeResolver;
+import lombok.core.configuration.NullCheckExceptionType;
+import lombok.core.handlers.HandlerUtil;
+import lombok.delombok.LombokOptionsFactory;
+import lombok.experimental.Accessors;
+import lombok.experimental.Tolerate;
+import lombok.javac.Javac;
+import lombok.javac.JavacNode;
+import lombok.javac.JavacTreeMaker;
+
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static lombok.core.handlers.HandlerUtil.INVALID_ON_BUILDERS;
+import static lombok.core.handlers.HandlerUtil.NON_NULL_PATTERN;
+import static lombok.core.handlers.HandlerUtil.NULLABLE_PATTERN;
+import static lombok.core.handlers.HandlerUtil.removePrefix;
+import static lombok.javac.Javac.CTC_BOT;
+import static lombok.javac.Javac.CTC_EQUAL;
+import static lombok.javac.Javac.calculateGuess;
+import static lombok.javac.Javac.isPrimitive;
+import static lombok.javac.JavacAugments.JCTree_generatedNode;
 
 /**
  * Container for static utility methods useful to handlers written for javac.
@@ -132,8 +129,7 @@ public class JediJavacUtil {
 	}
 	static boolean isAbstractType(JavacNode typeNode) {
 		JCClassDecl clazz = (JCClassDecl) typeNode.get();
-		boolean abstractType = clazz.sym.type.isInterface() || (clazz.getModifiers().flags & Flags.ABSTRACT) == Flags.ABSTRACT;
-		return abstractType;
+		return clazz.sym.type.isInterface() || (clazz.getModifiers().flags & Flags.ABSTRACT) == Flags.ABSTRACT;
 	}
 	static boolean isInterface(JavacNode typeNode){
 		JCClassDecl clazz = (JCClassDecl) typeNode.get();
@@ -546,7 +542,7 @@ public class JediJavacUtil {
 	
 	/**
 	 * Translates the given field into all possible getter names.
-	 * Convenient wrapper around {@link TransformationsUtil#toAllGetterNames(lombok.core.AnnotationValues, CharSequence, boolean)}.
+	 * Convenient wrapper around TransformationsUtil#toAllGetterNames(lombok.core.AnnotationValues, CharSequence, boolean).
 	 */
 	public static java.util.List<String> toAllGetterNames(JavacNode field) {
 		return HandlerUtil.toAllGetterNames(field.getAst(), getAccessorsForField(field), field.getName(), isBoolean(field));
@@ -554,8 +550,8 @@ public class JediJavacUtil {
 	
 	/**
 	 * @return the likely getter name for the stated field. (e.g. private boolean foo; to isFoo).
-	 * 
-	 * Convenient wrapper around {@link TransformationsUtil#toGetterName(lombok.core.AnnotationValues, CharSequence, boolean)}.
+	 *
+	 * Convenient wrapper around TransformationsUtil#toAllGetterNames(lombok.core.AnnotationValues, CharSequence, boolean).
 	 */
 	public static String toGetterName(JavacNode field) {
 		return HandlerUtil.toGetterName(field.getAst(), getAccessorsForField(field), field.getName(), isBoolean(field));
@@ -563,7 +559,7 @@ public class JediJavacUtil {
 	
 	/**
 	 * Translates the given field into all possible setter names.
-	 * Convenient wrapper around {@link TransformationsUtil#toAllSetterNames(lombok.core.AnnotationValues, CharSequence, boolean)}.
+	 * Convenient wrapper around TransformationsUtil#toAllGetterNames(lombok.core.AnnotationValues, CharSequence, boolean).
 	 */
 	public static java.util.List<String> toAllSetterNames(JavacNode field) {
 		return HandlerUtil.toAllSetterNames(field.getAst(), getAccessorsForField(field), field.getName(), isBoolean(field));
@@ -572,7 +568,7 @@ public class JediJavacUtil {
 	/**
 	 * @return the likely setter name for the stated field. (e.g. private boolean foo; to setFoo).
 	 * 
-	 * Convenient wrapper around {@link TransformationsUtil#toSetterName(lombok.core.AnnotationValues, CharSequence, boolean)}.
+	 * Convenient wrapper around TransformationsUtil#toAllGetterNames(lombok.core.AnnotationValues, CharSequence, boolean).
 	 */
 	public static String toSetterName(JavacNode field) {
 		return HandlerUtil.toSetterName(field.getAst(), getAccessorsForField(field), field.getName(), isBoolean(field));
@@ -580,7 +576,7 @@ public class JediJavacUtil {
 	
 	/**
 	 * Translates the given field into all possible wither names.
-	 * Convenient wrapper around {@link TransformationsUtil#toAllWitherNames(lombok.core.AnnotationValues, CharSequence, boolean)}.
+	 * Convenient wrapper around TransformationsUtil#toAllGetterNames(lombok.core.AnnotationValues, CharSequence, boolean).
 	 */
 	public static java.util.List<String> toAllWitherNames(JavacNode field) {
 		return HandlerUtil.toAllWitherNames(field.getAst(), getAccessorsForField(field), field.getName(), isBoolean(field));
@@ -589,7 +585,7 @@ public class JediJavacUtil {
 	/**
 	 * @return the likely wither name for the stated field. (e.g. private boolean foo; to withFoo).
 	 * 
-	 * Convenient wrapper around {@link TransformationsUtil#toWitherName(lombok.core.AnnotationValues, CharSequence, boolean)}.
+	 * Convenient wrapper around TransformationsUtil#toAllGetterNames(lombok.core.AnnotationValues, CharSequence, boolean).
 	 */
 	public static String toWitherName(JavacNode field) {
 		return HandlerUtil.toWitherName(field.getAst(), getAccessorsForField(field), field.getName(), isBoolean(field));
