@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>pt.iscte.lombok.jedi</groupId>
     <artifactId>pt.iscte.lombok.jedi</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
     <properties>
         <tools.path>C:\Program Files\Java\jdk1.8.0_333\lib\tools.jar</tools.path>
     </properties>

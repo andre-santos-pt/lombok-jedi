@@ -1,16 +1,17 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>pt.iscte.lombok.jedi</groupId>
-  <artifactId>pt.iscte.lombok.test</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
-  <dependencies>
-  	<dependency>
-  		<groupId>pt.iscte.lombok.jedi</groupId>
-  		<artifactId>pt.iscte.lombok.jedi</artifactId>
-  		<version>0.0.1-SNAPSHOT</version>
-  	</dependency>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>pt.iscte.lombok.jedi</groupId>
+    <artifactId>pt.iscte.lombok.test</artifactId>
+    <version>0.0.2-SNAPSHOT</version>
+    <dependencies>
+        <dependency>
+            <groupId>pt.iscte.lombok.jedi</groupId>
+            <artifactId>pt.iscte.lombok.jedi</artifactId>
+            <version>0.0.2-SNAPSHOT</version>
+        </dependency>
 
-  </dependencies>
+    </dependencies>
     <build>
         <sourceDirectory>src</sourceDirectory>
         <plugins>
@@ -18,79 +19,79 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.5.1</version>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                     <!--<generatedSourcesDirectory>${project.build.directory}-->
-                        <!--&lt;!&ndash;/generated-sources/</generatedSourcesDirectory>&ndash;&gt;-->
+                    <!--&lt;!&ndash;/generated-sources/</generatedSourcesDirectory>&ndash;&gt;-->
                     <!--<annotationProcessors>-->
-                        <!--<annotationProcessor>-->
-                            <!--lombok.javac.handlers.HandleVisitableType-->
-                        <!--</annotationProcessor>-->
-                        <!--<annotationProcessor>-->
-                            <!--lombok.javac.handlers.HandleComposite-->
-                        <!--</annotationProcessor>-->
-                        <!--<annotationProcessor>-->
-                            <!--lombok.javac.handlers.HandleCompositeChildren-->
-                        <!--</annotationProcessor>-->
-                        <!--<annotationProcessor>-->
-                            <!--lombok.javac.handlers.HandleCompositeComponent-->
-                        <!--</annotationProcessor>-->
-                        <!--<annotationProcessor>-->
-                            <!--lombok.javac.handlers.HandleCompositeLeaf-->
-                        <!--</annotationProcessor>-->
-                        <!--<annotationProcessor>-->
-                            <!--lombok.javac.handlers.HandleDecorator-->
-                        <!--</annotationProcessor>-->
-                        <!--<annotationProcessor>-->
-                            <!--lombok.javac.handlers.HandleFlyweight-->
-                        <!--</annotationProcessor>-->
-                        <!--<annotationProcessor>-->
-                            <!--lombok.javac.handlers.HandleFlyweightObject-->
-                        <!--</annotationProcessor>-->
-                        <!--<annotationProcessor>-->
-                            <!--lombok.javac.handlers.HandleObservable-->
-                        <!--</annotationProcessor>-->
-                        <!--<annotationProcessor>-->
-                            <!--lombok.javac.handlers.HandleObserverNotify-->
-                        <!--</annotationProcessor>-->
-                        <!--<annotationProcessor>-->
-                            <!--lombok.javac.handlers.HandleWrapper-->
-                        <!--</annotationProcessor>-->
-                        <!--<annotationProcessor>-->
-                            <!--lombok.javac.handlers.HandleSingleton-->
-                        <!--</annotationProcessor>-->
-                        <!--<annotationProcessor>-->
-                            <!--lombok.javac.handlers.HandleVisitableNode-->
-                        <!--</annotationProcessor>-->
+                    <!--<annotationProcessor>-->
+                    <!--lombok.javac.handlers.HandleVisitableType-->
+                    <!--</annotationProcessor>-->
+                    <!--<annotationProcessor>-->
+                    <!--lombok.javac.handlers.HandleComposite-->
+                    <!--</annotationProcessor>-->
+                    <!--<annotationProcessor>-->
+                    <!--lombok.javac.handlers.HandleCompositeChildren-->
+                    <!--</annotationProcessor>-->
+                    <!--<annotationProcessor>-->
+                    <!--lombok.javac.handlers.HandleCompositeComponent-->
+                    <!--</annotationProcessor>-->
+                    <!--<annotationProcessor>-->
+                    <!--lombok.javac.handlers.HandleCompositeLeaf-->
+                    <!--</annotationProcessor>-->
+                    <!--<annotationProcessor>-->
+                    <!--lombok.javac.handlers.HandleDecorator-->
+                    <!--</annotationProcessor>-->
+                    <!--<annotationProcessor>-->
+                    <!--lombok.javac.handlers.HandleFlyweight-->
+                    <!--</annotationProcessor>-->
+                    <!--<annotationProcessor>-->
+                    <!--lombok.javac.handlers.HandleFlyweightObject-->
+                    <!--</annotationProcessor>-->
+                    <!--<annotationProcessor>-->
+                    <!--lombok.javac.handlers.HandleObservable-->
+                    <!--</annotationProcessor>-->
+                    <!--<annotationProcessor>-->
+                    <!--lombok.javac.handlers.HandleObserverNotify-->
+                    <!--</annotationProcessor>-->
+                    <!--<annotationProcessor>-->
+                    <!--lombok.javac.handlers.HandleWrapper-->
+                    <!--</annotationProcessor>-->
+                    <!--<annotationProcessor>-->
+                    <!--lombok.javac.handlers.HandleSingleton-->
+                    <!--</annotationProcessor>-->
+                    <!--<annotationProcessor>-->
+                    <!--lombok.javac.handlers.HandleVisitableNode-->
+                    <!--</annotationProcessor>-->
                     <!--</annotationProcessors>-->
                 </configuration>
                 <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<id>process-annotations</id>-->
-                        <!--<phase>generate-sources</phase>-->
-                        <!--<goals>-->
-                            <!--<goal>compile</goal>-->
-                        <!--</goals>-->
-                        <!--<configuration>-->
-                            <!--<compilerArgs>-->
-                                <!--<arg>-proc:only</arg>-->
-                                <!--<arg>-processor</arg>-->
-                                <!--<arg>lombok.javac.handlers.HandleVisitableType</arg>-->
-                            <!--</compilerArgs>-->
-                        <!--</configuration>-->
-                    <!--</execution>-->
-                    <!--<execution>-->
-                        <!--<id>default-compile</id>-->
-                        <!--<phase>compile</phase>-->
-                        <!--<goals>-->
-                            <!--<goal>compile</goal>-->
-                        <!--</goals>-->
-                        <!--<configuration>-->
-                            <!--<compilerArgs>-->
-                                <!--<arg>-proc:none</arg>-->
-                            <!--</compilerArgs>-->
-                        <!--</configuration>-->
-                    <!--</execution>-->
+                <!--<execution>-->
+                <!--<id>process-annotations</id>-->
+                <!--<phase>generate-sources</phase>-->
+                <!--<goals>-->
+                <!--<goal>compile</goal>-->
+                <!--</goals>-->
+                <!--<configuration>-->
+                <!--<compilerArgs>-->
+                <!--<arg>-proc:only</arg>-->
+                <!--<arg>-processor</arg>-->
+                <!--<arg>lombok.javac.handlers.HandleVisitableType</arg>-->
+                <!--</compilerArgs>-->
+                <!--</configuration>-->
+                <!--</execution>-->
+                <!--<execution>-->
+                <!--<id>default-compile</id>-->
+                <!--<phase>compile</phase>-->
+                <!--<goals>-->
+                <!--<goal>compile</goal>-->
+                <!--</goals>-->
+                <!--<configuration>-->
+                <!--<compilerArgs>-->
+                <!--<arg>-proc:none</arg>-->
+                <!--</compilerArgs>-->
+                <!--</configuration>-->
+                <!--</execution>-->
                 <!--</executions>-->
             </plugin>
         </plugins>
