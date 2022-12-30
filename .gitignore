@@ -1,4 +1,17 @@
+# compilation output
 *.class
+target/
+
+#netbeans config file
+nbactions.xml
+
+#IntelliJ config
+.idea/
+*.iml
+
+#eclipse
+.classpath
+.project
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/

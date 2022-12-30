@@ -21,33 +21,28 @@
  */
 package lombok.javac.handlers;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import lombok.Visitor;
-import lombok.Composite.Component;
-import lombok.Visitor.Children;
-import lombok.Visitor.Node;
-import lombok.core.AST.Kind;
-import lombok.core.AnnotationValues;
-import lombok.core.HandlerPriority;
-import lombok.javac.JavacAnnotationHandler;
-import lombok.javac.JavacNode;
-import lombok.javac.JavacTreeMaker;
-import lombok.javac.ResolutionResetNeeded;
-
-import org.mangosdk.spi.ProviderFor;
-
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ClassType;
 import com.sun.tools.javac.code.Types;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
+import lombok.Visitor;
+import lombok.Visitor.Children;
+import lombok.Visitor.Node;
+import lombok.core.AnnotationValues;
+import lombok.core.HandlerPriority;
+import lombok.javac.JavacAnnotationHandler;
+import lombok.javac.JavacNode;
+import lombok.javac.ResolutionResetNeeded;
+import org.mangosdk.spi.ProviderFor;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @ProviderFor(JavacAnnotationHandler.class)
 @ResolutionResetNeeded

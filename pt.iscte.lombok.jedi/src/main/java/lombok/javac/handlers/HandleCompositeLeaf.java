@@ -21,26 +21,6 @@
  */
 package lombok.javac.handlers;
 
-import static lombok.javac.Javac.CTC_BOT;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import lombok.Composite;
-import lombok.Composite.Children;
-import lombok.Composite.Component;
-import lombok.Composite;
-import lombok.core.AST.Kind;
-import lombok.core.configuration.NullCheckExceptionType;
-import lombok.core.AnnotationValues;
-import lombok.core.HandlerPriority;
-import lombok.javac.JavacAnnotationHandler;
-import lombok.javac.JavacNode;
-import lombok.javac.JavacTreeMaker;
-import lombok.javac.ResolutionResetNeeded;
-
-import org.mangosdk.spi.ProviderFor;
-
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ClassType;
@@ -56,6 +36,17 @@ import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.JCTree.JCMethodInvocation;
 import com.sun.tools.javac.tree.JCTree.JCStatement;
 import com.sun.tools.javac.util.List;
+import lombok.Composite;
+import lombok.core.AST.Kind;
+import lombok.core.AnnotationValues;
+import lombok.core.HandlerPriority;
+import lombok.javac.JavacAnnotationHandler;
+import lombok.javac.JavacNode;
+import lombok.javac.JavacTreeMaker;
+import lombok.javac.ResolutionResetNeeded;
+import org.mangosdk.spi.ProviderFor;
+
+import static lombok.javac.Javac.CTC_BOT;
 
 
 @HandlerPriority(10)

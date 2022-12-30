@@ -22,49 +22,11 @@ package lombok.javac.handlers;
  * THE SOFTWARE.
  */
 
-import static lombok.javac.Javac.CTC_BOOLEAN;
-import static lombok.javac.Javac.CTC_BYTE;
-import static lombok.javac.Javac.CTC_CHAR;
-import static lombok.javac.Javac.CTC_DOUBLE;
-import static lombok.javac.Javac.CTC_FLOAT;
-import static lombok.javac.Javac.CTC_INT;
-import static lombok.javac.Javac.CTC_LONG;
-import static lombok.javac.Javac.CTC_SHORT;
-import static lombok.javac.Javac.CTC_VOID;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Set;
-
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.ExecutableType;
-import javax.lang.model.type.TypeKind;
-import javax.lang.model.type.TypeMirror;
-
-import lombok.AccessLevel;
-import lombok.Wrapper;
-import lombok.core.AST.Kind;
-import lombok.core.AnnotationValues;
-import lombok.core.HandlerPriority;
-import lombok.javac.JavacAnnotationHandler;
-import lombok.javac.JavacNode;
-import lombok.javac.JavacResolution;
-import lombok.javac.ResolutionResetNeeded;
-import lombok.javac.JavacResolution.TypeNotConvertibleException;
-import lombok.javac.JavacTreeMaker;
-import lombok.javac.JavacTreeMaker.TypeTag;
-
-import org.mangosdk.spi.ProviderFor;
-
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ClassType;
 import com.sun.tools.javac.model.JavacTypes;
-import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCAssign;
 import com.sun.tools.javac.tree.JCTree.JCBlock;
@@ -74,11 +36,41 @@ import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.JCTree.JCMethodInvocation;
 import com.sun.tools.javac.tree.JCTree.JCStatement;
-import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
 import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.ListBuffer;
 import com.sun.tools.javac.util.Name;
+import lombok.AccessLevel;
+import lombok.Wrapper;
+import lombok.core.AST.Kind;
+import lombok.core.AnnotationValues;
+import lombok.core.HandlerPriority;
+import lombok.javac.JavacAnnotationHandler;
+import lombok.javac.JavacNode;
+import lombok.javac.JavacResolution;
+import lombok.javac.JavacResolution.TypeNotConvertibleException;
+import lombok.javac.JavacTreeMaker;
+import lombok.javac.JavacTreeMaker.TypeTag;
+import lombok.javac.ResolutionResetNeeded;
+import org.mangosdk.spi.ProviderFor;
+
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.ExecutableType;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
+import java.util.Set;
+
+import static lombok.javac.Javac.CTC_BOOLEAN;
+import static lombok.javac.Javac.CTC_BYTE;
+import static lombok.javac.Javac.CTC_CHAR;
+import static lombok.javac.Javac.CTC_DOUBLE;
+import static lombok.javac.Javac.CTC_FLOAT;
+import static lombok.javac.Javac.CTC_INT;
+import static lombok.javac.Javac.CTC_LONG;
+import static lombok.javac.Javac.CTC_SHORT;
+import static lombok.javac.Javac.CTC_VOID;
 
 
 @ProviderFor(JavacAnnotationHandler.class)
